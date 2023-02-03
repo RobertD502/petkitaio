@@ -125,7 +125,8 @@ class PetKitClient:
 
     async def get_petkit_data(self) -> PetKitData:
         """Fetch data for all PetKit devices."""
-
+        
+        header = await self.create_header()
         device_roster = await self.get_device_roster()
         if 'hasRelay' in device_roster['result']:
             self.has_relay = device_roster['result']['hasRelay']
