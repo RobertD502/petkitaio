@@ -212,8 +212,8 @@ class PetKitClient:
                     fountains_data[fountain_data['result']['id']] = W5Fountain(
                         id=fountain_data['result']['id'],
                         data=fountain_data['result'],
-                        ble_relay=relay_tc,
-                        type=device_type
+                        type=device_type,
+                        ble_relay=relay_tc
                     )
                 # Feeders
                 if device['type'] in FEEDER_LIST:
