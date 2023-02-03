@@ -11,7 +11,7 @@ This is PetKit's undocumented API. With that said, future changes made by PetKit
 
 ## Important
 
-`If you don't have a water fountain on your PetKit account:``
+`If you don't have a water fountain on your PetKit account:`
 Create a new PetKit account and share your devices from your original account to it. This will allow you to use your main account on the mobile app, and the secondary account with this library. Otherwise, your main account will get logged out of the mobile app when using this library. This is a limitation of how PetKit handles authorization.
 
 `If you do have a water fountain:`
