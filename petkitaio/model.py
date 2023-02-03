@@ -35,5 +35,5 @@ class W5Fountain:
 
     id: int
     data: dict[str, Any]
-    ble_relay: int | None
+    ble_relay: Optional[int] = None
     type: str
