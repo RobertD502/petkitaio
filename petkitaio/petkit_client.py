@@ -111,8 +111,8 @@ class PetKitClient:
         }
         return header
 
-    async def get_petkit_data(self) -> PetKitData:
-        """Fetch data for all PetKit devices."""
+    async def get_device_roster(self) -> dict[str, Any]:
+        """Fetch device roster endpoint to get all available devices."""
 
         await self.check_token()
         url = f'{self.base_url}{Endpoint.DEVICEROSTER}'
@@ -121,6 +121,12 @@ class PetKitClient:
             'day': str(datetime.now().date()).replace('-', ''),
         }
         device_roster = await self._post(url, header, data)
+        return device_roster
+
+    async def get_petkit_data(self) -> PetKitData:
+        """Fetch data for all PetKit devices."""
+
+        device_roster = await self.get_device_roster()
         if 'hasRelay' in device_roster['result']:
             self.has_relay = device_roster['result']['hasRelay']
         else:
