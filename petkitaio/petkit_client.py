@@ -126,13 +126,13 @@ class PetKitClient:
     async def get_petkit_data(self) -> PetKitData:
         """Fetch data for all PetKit devices."""
         
-        header = await self.create_header()
         device_roster = await self.get_device_roster()
         if 'hasRelay' in device_roster['result']:
             self.has_relay = device_roster['result']['hasRelay']
         else:
             self.has_relay = False
-
+        header = await self.create_header()
+        
         fountains_data: dict[int, W5Fountain] = {}
         feeders_data: dict[int, Feeder] = {}
         litter_boxes_data: dict[int, LitterBox] = {}
