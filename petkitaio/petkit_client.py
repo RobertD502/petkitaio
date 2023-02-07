@@ -125,14 +125,14 @@ class PetKitClient:
 
     async def get_petkit_data(self) -> PetKitData:
         """Fetch data for all PetKit devices."""
-        
+
         device_roster = await self.get_device_roster()
         if 'hasRelay' in device_roster['result']:
             self.has_relay = device_roster['result']['hasRelay']
         else:
             self.has_relay = False
         header = await self.create_header()
-        
+
         fountains_data: dict[int, W5Fountain] = {}
         feeders_data: dict[int, Feeder] = {}
         litter_boxes_data: dict[int, LitterBox] = {}
@@ -154,22 +154,22 @@ class PetKitClient:
                     if self.has_relay:
                         ble_available: bool = False
                         main_online: bool = False
-                        main_tcode: str = ''
                         fountain_tcode = str(device['data']['typeCode'])
                         ble_url = f'{self.base_url}{Endpoint.BLEDEVICES}'
-                        relay_device = await self._post(ble_url, header, data={})
-                        if relay_device['result']:
+                        relay_devices = await self._post(ble_url, header, data={})
+                        if relay_devices['result']:
                             ble_available = True
-                            for device in devices:
-                                if device['data']['id'] == relay_device['result'][0]['id']:
-                                    main_tcode = str(device['data']['typeCode'])
-                                    main_online = device['data']['status']['pim'] == 1
-                                    main_on_battery = device['data']['status']['pim'] == 2
+                            for relay_device in relay_devices['result']:
+                                if relay_device['pim'] == 1:
+                                    main_online = True
+                                    break
+                                else:
+                                    main_online = False
 
                             if ble_available and main_online:
                                 device_details = await self._post(wf_url, header, data)
                                 mac = device_details['result']['mac']
-                                type_code = int(f'{main_tcode}{fountain_tcode}')
+                                type_code = int(f'1{fountain_tcode}')
                                 relay_tc = type_code
                                 conn_url = f'{self.base_url}{Endpoint.BLECONNECT}'
                                 ble_data = {
@@ -199,11 +199,8 @@ class PetKitClient:
                                             pass
                                         finally:
                                             fountain_data = await self._post(wf_url, header, data)
-                            if (not main_online) or main_on_battery:
-                                if main_on_battery:
-                                    LOGGER.warning(f'Unable to use BLE relay: Main relay device is currently running on battery power. Fetching latest available data.')
-                                else:
-                                    LOGGER.warning(f'Unable to use BLE relay: Main relay device is reported as being offline. Fetching latest available data.')
+                            if not main_online:
+                                LOGGER.warning(f'Unable to use BLE relay: Main relay device is reported as being offline. Fetching latest available data.')
                                 fountain_data = await self._post(wf_url, header, data)
                         else:
                             fountain_data = await self._post(wf_url, header, data)
@@ -242,6 +239,7 @@ class PetKitClient:
                     )
 
         return PetKitData(user_id=self.user_id, feeders=feeders_data, litter_boxes=litter_boxes_data, water_fountains=fountains_data)
+
 
     async def _post(self, url: str, headers: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:
         """Make POST API call."""
