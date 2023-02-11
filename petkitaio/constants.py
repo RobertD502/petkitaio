@@ -93,6 +93,7 @@ BLUETOOTH_ERRORS = {
     3003: 'Bluetooth connection failed. Retrying on next update.'
 }
 
+BLE_HEADER = [-6, -4, -3]
 FEEDER_LIST = ['D4', 'FeederMini']
 LITTER_LIST = ['T3', 'T4']
 WATER_FOUNTAIN_LIST = ['W5']
@@ -111,3 +112,17 @@ W5_COMMAND_TO_CODE = {
     W5Command.SMART: '220',
     W5Command.SMARTTOPAUSE: '220',
 }
+
+W5_DND_COMMANDS = [W5Command.DONOTDISTURB, W5Command.DONOTDISTURBOFF]
+W5_LIGHT_BRIGHTNESS = [W5Command.LIGHTLOW, W5Command.LIGHTMEDIUM, W5Command.LIGHTHIGH]
+W5_LIGHT_POWER = [W5Command.LIGHTON, W5Command.LIGHTOFF]
+W5_MODE = [W5Command.NORMAL, W5Command.SMART, W5Command.NORMALTOPAUSE, W5Command.SMARTTOPAUSE]
+W5_SETTINGS_COMMANDS = [
+    W5Command.DONOTDISTURB,
+    W5Command.DONOTDISTURBOFF,
+    W5Command.LIGHTLOW,
+    W5Command.LIGHTMEDIUM,
+    W5Command.LIGHTHIGH,
+    W5Command.LIGHTON,
+    W5Command.LIGHTOFF,
+]
