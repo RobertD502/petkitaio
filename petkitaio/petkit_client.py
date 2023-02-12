@@ -1,16 +1,20 @@
 """Python API for PetKit Devices"""
 from __future__ import annotations
 
+import base64
 from typing import Any
 import asyncio
 from datetime import datetime, timedelta
+from itertools import chain
 import json
 import logging
+import urllib.parse as urlencode
 
 from aiohttp import ClientResponse, ClientSession
 import hashlib
 
 from petkitaio.constants import (
+    BLE_HEADER,
     BLUETOOTH_ERRORS,
     CLIENT_DICT,
     Endpoint,
@@ -23,7 +27,11 @@ from petkitaio.constants import (
     TIMEOUT,
     WATER_FOUNTAIN_LIST,
     W5Command,
-    W5_COMMAND_TO_CODE
+    W5_COMMAND_TO_CODE,
+    W5_DND_COMMANDS,
+    W5_LIGHT_BRIGHTNESS,
+    W5_LIGHT_POWER,
+    W5_SETTINGS_COMMANDS,
 )
 from petkitaio.exceptions import (AuthError, BluetoothError, PetKitError)
 from petkitaio.model import (Feeder, LitterBox, PetKitData, W5Fountain)
@@ -53,6 +61,7 @@ class PetKitClient:
         self.token_expiration: datetime | None = None
         self.user_id: str | None = None
         self.has_relay: bool = False
+        self.ble_sequence: int = 0
 
     async def login(self) -> None:
         login_url = f'{self.base_url}{Endpoint.LOGIN}'
@@ -125,14 +134,14 @@ class PetKitClient:
 
     async def get_petkit_data(self) -> PetKitData:
         """Fetch data for all PetKit devices."""
-        
+
         device_roster = await self.get_device_roster()
         if 'hasRelay' in device_roster['result']:
             self.has_relay = device_roster['result']['hasRelay']
         else:
             self.has_relay = False
         header = await self.create_header()
-        
+
         fountains_data: dict[int, W5Fountain] = {}
         feeders_data: dict[int, Feeder] = {}
         litter_boxes_data: dict[int, LitterBox] = {}
@@ -154,22 +163,22 @@ class PetKitClient:
                     if self.has_relay:
                         ble_available: bool = False
                         main_online: bool = False
-                        main_tcode: str = ''
                         fountain_tcode = str(device['data']['typeCode'])
                         ble_url = f'{self.base_url}{Endpoint.BLEDEVICES}'
-                        relay_device = await self._post(ble_url, header, data={})
-                        if relay_device['result']:
+                        relay_devices = await self._post(ble_url, header, data={})
+                        if relay_devices['result']:
                             ble_available = True
-                            for device in devices:
-                                if device['data']['id'] == relay_device['result'][0]['id']:
-                                    main_tcode = str(device['data']['typeCode'])
-                                    main_online = device['data']['status']['pim'] == 1
-                                    main_on_battery = device['data']['status']['pim'] == 2
+                            for relay_device in relay_devices['result']:
+                                if relay_device['pim'] == 1:
+                                    main_online = True
+                                    break
+                                else:
+                                    main_online = False
 
                             if ble_available and main_online:
                                 device_details = await self._post(wf_url, header, data)
                                 mac = device_details['result']['mac']
-                                type_code = int(f'{main_tcode}{fountain_tcode}')
+                                type_code = int(f'1{fountain_tcode}')
                                 relay_tc = type_code
                                 conn_url = f'{self.base_url}{Endpoint.BLECONNECT}'
                                 ble_data = {
@@ -192,6 +201,11 @@ class PetKitClient:
                                     else:
                                         # Wait a bit for BLE connection to be established before looking up most recent data
                                         await asyncio.sleep(2)
+                                        # Need to reset ble_sequence if get_petkit_data is being called multiple times without a W5Commmand sent in between
+                                        # Need to add 1 to the sequence after ble connect and poll are successful
+                                        if self.ble_sequence != 0:
+                                            self.ble_sequence = 0
+                                        self.ble_sequence += 1
                                         try:
                                             await self.initial_ble_commands(device_details, relay_tc)
                                         except BluetoothError:
@@ -199,11 +213,8 @@ class PetKitClient:
                                             pass
                                         finally:
                                             fountain_data = await self._post(wf_url, header, data)
-                            if (not main_online) or main_on_battery:
-                                if main_on_battery:
-                                    LOGGER.warning(f'Unable to use BLE relay: Main relay device is currently running on battery power. Fetching latest available data.')
-                                else:
-                                    LOGGER.warning(f'Unable to use BLE relay: Main relay device is reported as being offline. Fetching latest available data.')
+                            if not main_online:
+                                LOGGER.warning(f'Unable to use BLE relay: Main relay device is reported as being offline. Fetching latest available data.')
                                 fountain_data = await self._post(wf_url, header, data)
                         else:
                             fountain_data = await self._post(wf_url, header, data)
@@ -243,6 +254,7 @@ class PetKitClient:
 
         return PetKitData(user_id=self.user_id, feeders=feeders_data, litter_boxes=litter_boxes_data, water_fountains=fountains_data)
 
+
     async def _post(self, url: str, headers: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:
         """Make POST API call."""
 
@@ -278,23 +290,161 @@ class PetKitClient:
         """We have to make two calls to get updated date from the water fountain."""
         command_url = f'{self.base_url}{Endpoint.CONTROLWF}'
         header = await self.create_header()
-        first_data = {
+        data1 = await self.create_ble_data(W5Command.FIRSTBLECMND)
+        first_command = {
             'bleId': device['result']['id'],
             'cmd': '215',
-            'data': W5Command.FIRSTBLECMND,
+            'data': data1,
             'mac': device['result']['mac'],
             'type': relay_type
         }
-        second_data = {
+        await self._post(command_url, header, first_command)
+        self.ble_sequence += 1
+
+        data2 = await self.create_ble_data(W5Command.SECONDBLECMND)
+        second_command = {
             'bleId': device['result']['id'],
             'cmd': '216',
-            'data': W5Command.SECONDBLECMND,
+            'data': data2,
             'mac': device['result']['mac'],
             'type': relay_type
         }
-        await self._post(command_url, header, first_data)
-        await self._post(command_url, header, second_data)
+        await self._post(command_url, header, second_command)
+        self.ble_sequence += 1
 
+
+    async def create_ble_data(self, command: W5Command, device: W5Fountain | None = None) -> str:
+        """Create URL encoded data from specific byte array."""
+
+        byte_list: list = []
+        if command == W5Command.FIRSTBLECMND:
+            byte_list = [-6, -4, -3, -41, 1, self.ble_sequence, 0, 0, -5]
+        if command == W5Command.SECONDBLECMND:
+            byte_list = [-6, -4, -3, -40, 1, self.ble_sequence, 0, 0, -5]
+        if command == W5Command.NORMALTOPAUSE:
+            byte_list = [-6, -4, -3, -36, 1, self.ble_sequence, 2, 0, 0, 1, -5]
+        if command == W5Command.SMARTTOPAUSE:
+            byte_list = [-6, -4, -3, -36, 1, self.ble_sequence, 2, 0, 0, 2, -5]
+        if command == W5Command.NORMAL:
+            byte_list = [-6, -4, -3, -36, 1, self.ble_sequence, 2, 0, 1, 1, -5]
+        if command == W5Command.SMART:
+            byte_list = [-6, -4, -3, -36, 1, self.ble_sequence, 2, 0, 1, 2, -5]
+
+        if command == W5Command.LIGHTOFF:
+            # byte_list example = [-6, -4, -3, -35, 1, self.ble_sequence, 13, 0, 3, 3, 0, light_brightness, 0, 0, 0, 0, 0, 5, 40, 1, 104, -5]
+            data_list = await self.w5_command_data_creator(device=device, command=command, setting=[0])
+            byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
+
+        if command == W5Command.LIGHTON:
+            data_list = await self.w5_command_data_creator(device=device, command=command, setting=[1])
+            byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
+
+        if command == W5Command.LIGHTLOW:
+            data_list = await self.w5_command_data_creator(device=device, command=command, setting=[1])
+            byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
+
+        if command == W5Command.LIGHTMEDIUM:
+            data_list = await self.w5_command_data_creator(device=device, command=command, setting=[2])
+            byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
+
+        if command == W5Command.LIGHTHIGH:
+            data_list = await self.w5_command_data_creator(device=device, command=command, setting=[3])
+            byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
+
+        if command == W5Command.DONOTDISTURB:
+            data_list = await self.w5_command_data_creator(device=device, command=command, setting=[1])
+            byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
+
+        if command == W5Command.DONOTDISTURBOFF:
+            data_list = await self.w5_command_data_creator(device=device, command=command, setting=[0])
+            byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
+
+        if command == W5Command.RESETFILTER:
+            byte_list = [-6, -4, -3, -34, 1, self.ble_sequence, 0, 0, -5]
+
+        byte_array = bytearray([x % 256 for x in byte_list])
+        b64_encoded = base64.b64encode(byte_array)
+        url_encoded = urlencode.quote(b64_encoded, 'utf-8')
+        return url_encoded
+
+    async def w5_command_data_creator(self, device: W5Fountain, command: W5Command, setting: list) -> list:
+        """Create W5 settings byte array as list."""
+
+        data: list = []
+        device_data = device.data
+        if command in W5_SETTINGS_COMMANDS:
+            light_up = await self.short_to_byte_list(input=device_data['settings']['lampRingLightUpTime'])
+            light_out = await self.short_to_byte_list(input=device_data['settings']['lampRingGoOutTime'])
+            disturb_start = await self.short_to_byte_list(input=device_data['settings']['noDisturbingStartTime'])
+            disturb_end = await self.short_to_byte_list(input=device_data['settings']['noDisturbingEndTime'])
+
+            if command in W5_LIGHT_POWER:
+                data = list(chain(
+                                [device_data['settings']['smartWorkingTime']],
+                                [device_data['settings']['smartSleepTime']],
+                                setting,
+                                [device_data['settings']['lampRingBrightness']],
+                                light_up,
+                                light_out,
+                                [device_data['settings']['noDisturbingSwitch']],
+                                disturb_start,
+                                disturb_end,
+                            )
+                        )
+            if command in W5_LIGHT_BRIGHTNESS:
+                data = list(chain(
+                                [device_data['settings']['smartWorkingTime']],
+                                [device_data['settings']['smartSleepTime']],
+                                [device_data['settings']['lampRingSwitch']],
+                                setting,
+                                light_up,
+                                light_out,
+                                [device_data['settings']['noDisturbingSwitch']],
+                                disturb_start,
+                                disturb_end,
+                            )
+                        )
+            if command in W5_DND_COMMANDS:
+                data = list(chain(
+                                [device_data['settings']['smartWorkingTime']],
+                                [device_data['settings']['smartSleepTime']],
+                                [device_data['settings']['lampRingSwitch']],
+                                [device_data['settings']['lampRingBrightness']],
+                                light_up,
+                                light_out,
+                                setting,
+                                disturb_start,
+                                disturb_end,
+                            )
+                        )
+        return data
+
+    async def create_ble_byte_list(self, command: int, data_list: list[int]) -> list[int]:
+        """Creates final byte list which is to be encoded before being sent."""
+
+        byte_list = list(chain(
+            BLE_HEADER,
+            [command],
+            [1],
+            [self.ble_sequence],
+            [(len(data_list) & 255)],
+            [(len(data_list) >> 8)],
+            data_list,
+            [-5]
+        ))
+        return byte_list
+
+    @staticmethod
+    async def short_to_byte_list(input: int) -> list:
+        """Take a short and creates a list with bytes represented in int format."""
+
+        byte_list: list = []
+        i: int = 0
+        while i < 2:
+            i2: int = i + 1
+            byte_list.append(((input >> (16 - (i2 * 8))) & 255))
+            i = i2
+        return byte_list
 
     async def control_water_fountain(self, water_fountain: W5Fountain, command: W5Command):
         """Set the mode on W5 Water Fountain."""
@@ -307,12 +457,23 @@ class PetKitClient:
                     raise PetKitError(f'{water_fountain.data["name"]} is already paused.')
                 else:
                     if water_fountain.data['mode'] == 1:
-                        command = W5Command.NORMALTOPAUSE
+                        ble_data = await self.create_ble_data(W5Command.NORMALTOPAUSE, water_fountain)
                     else:
-                        command = W5Command.SMARTTOPAUSE
+                        ble_data = await self.create_ble_data(W5Command.SMARTTOPAUSE, water_fountain)
 
+            # make sure light is on if brightness is being set
+            elif command in W5_LIGHT_BRIGHTNESS:
+                if water_fountain.data['settings']['lampRingSwitch'] != 1:
+                    raise PetKitError(f'{water_fountain.data["name"]} indicator light is Off. You can only change light brightness when the indicator light is On.')
+                else:
+                    ble_data = await self.create_ble_data(command, water_fountain)
+            # Handle all other commands
+            else:
+                # Also send current light brightness in case command is to turn indicator light on/off
+#                light_brightness = water_fountain.data['settings']['lampRingBrightness']
+                ble_data = await self.create_ble_data(command, water_fountain)
             header = await self.create_header()
-            ble_data = {
+            conn_data = {
                 'bleId': water_fountain.data['id'],
                 'mac': water_fountain.data['mac'],
                 'type': water_fountain.ble_relay
@@ -325,17 +486,19 @@ class PetKitClient:
             command_data = {
                 'bleId': water_fountain.data['id'],
                 'cmd': cmnd_code,
-                'data': command,
+                'data': ble_data,
                 'mac': water_fountain.data['mac'],
                 'type': water_fountain.ble_relay
             }
             # Initiate BLE connection and poll
-            await self._post(connect_url, header, ble_data)
-            await self._post(poll_url, header, ble_data)
+            await self._post(connect_url, header, conn_data)
+            await self._post(poll_url, header, conn_data)
             # Ensure BLE connection is made before sending command
             await asyncio.sleep(2)
             # Send command to water fountain via BLE relay
             send_command = await self._post(command_url, header, command_data)
+            # Reset ble_sequence
+            self.ble_sequence = 0
 
 
     async def manual_feeding(self, feeder: Feeder, amount: int) -> None:
