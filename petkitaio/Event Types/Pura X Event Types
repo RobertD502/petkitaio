@@ -1,0 +1,118 @@
+#### Event Type 5: clean_over ####
+
+Result 0: {
+    start_reason 0: 'Auto cleaning completed.'
+    start_reason 1: Periodic cleaning completed.
+    start_reason 2: 'Manual cleaning completed.'
+    start_reason 3: 'Manual cleaning completed.'
+}
+
+Result 1: {
+    start_reason 0: Automatic cleaning terminated
+    start_reason 1: Periodic cleaning terminated
+    start_reason 2: Manual cleaning terminated
+    start_reason 3: Manual cleaning terminated
+}
+
+Result 2: {
+    start_reason 0: {
+        error = "full": Automatic cleaning failed, waste collection bin is full, please empty promptly.
+        error = "hallL": Automatic cleaning failure, the cylinder is not properly locked in place, please check.
+        error = "hallT": Automatic cleaning failure, the litter box\'s upper cupper cover is not placed properly, please check.
+    }
+    start_reason 1: {
+        error = "full": Scheduled cleaning failed, waste collection bin is full, please empty promptly.
+        error = "hallL": Scheduled cleaning failure, the cylinder is not properly locked in place, please check.
+        error = "hallT": Scheduled cleaning failure, the litter box\'s upper cupper cover is not placed properly, please check.
+    }
+    start_reason 2/3: {
+      error = "full": Manual cleaning failed, waste collection bin is full, please empty promptly
+      error = "hallL": Manual cleaning failed, the cylinder is not properly locked in place, please check.
+      error = "hallT": Manual cleaning failure, the litter box\'s upper cupper cover is not placed properly, please check.
+    }
+}
+
+Result 3: {
+    start_reason 0: Automatic cleaning cancelled, device in operation.
+    start_reason 1: Periodic cleaning cancelled, device in operation.
+    start_reason 2: Manual cleaning cancelled, device in operation.
+    start_reason 3: Manual cleaning cancelled, device in operation.
+}
+
+Result 4: {
+    start_reason 0: Kitten mode is enabled, auto cleaning is canceled
+    start_reason 1: Kitten mode is enabled, periodically cleaning is canceled
+}
+
+
+
+
+
+#### Event Type 6: dumping_over ####
+
+Result 0: {
+    Cat litter empty completed
+}
+
+Result 1: {
+    Cat litter empty terminated
+}
+
+Result 2: {
+    error = "full": Cat litter empty failed, waste collection bin is full, please empty promptly.
+    error = "hallL": Cat litter empty failure, the cylinder is not properly locked in place, please check.
+    error = "hallT": Cat litter empty failure, the litter box\'s cupper cover is not placed properly, please check.
+}
+
+
+
+
+
+
+#### Event Type 7: reset_over ####
+
+Result 0: {
+    Device reset completed
+}
+
+Result 1: {
+    Device reset terminated
+}
+
+Result 2: {
+    error = "full": Device reset failed, waste collection bin is full, please empty promptly.
+    error = "hallL": Device reset failure, the cylinder is not properly locked in place, please check.
+    error = "hallT": Device reset failure, the litter box\'s cupper cover is not placed properly, please check.
+}
+
+
+
+
+#### Event Type 8: spray_over ####
+
+Result 0: {
+    reason 0: Deodorant FINISHED
+    reason 1: Periodic odor removal completed
+    reason 2/3: Manual odor removal completed
+}
+
+
+Result 2: {
+    reason 0: Automatic odor removal failed, odor eliminator error
+    reason 1: Periodic odor removal failure, odor eliminator malfunction.
+    reason 2/3: Manual odor removal failure, odor eliminator malfunction.
+}
+
+Result 1: {
+    reason 0: Deodorant FINISHED, not enough purifying liquid, please refill in time
+    reason 1: Periodic odor removal completed, not enough purifying liquid, please refill in time
+    reason 2/3: Manual odor removal completed, not enough purifying liquid, please refill in time
+}
+
+
+
+
+
+#### Event Type 10: pet_out ####
+
+There are no result and reason for this one....list the pet name and weight instead
