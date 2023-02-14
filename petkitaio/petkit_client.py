@@ -676,7 +676,7 @@ class PetKitClient:
             'amount': amount,
             'day': str(datetime.now().date()).replace('-', ''),
             'deviceId': feeder.id,
-            'time': '-1'
+            'time': -1
         }
         await self._post(url, header, data)
 
