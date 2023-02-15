@@ -642,7 +642,7 @@ class PetKitClient:
             if record['result']:
                 last_item = record['result'][-1]
                 if last_item['enumEventType'] == 'clean_over':
-                    if (last_item['content']['startReason'] == 2) and (last_item['content']['result'] == 3):
+                    if (last_item['content']['startReason'] in [0, 1, 2, 3]) and (last_item['content']['result'] == 3):
                         await self.control_litter_box(litter_box, LitterBoxCommand.RESUMECLEAN)
                         self.manually_paused[litter_box.id] = False
                         self.manual_pause_end[litter_box.id] = None
