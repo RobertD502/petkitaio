@@ -10,31 +10,47 @@ class Region(StrEnum):
 
 class Endpoint(StrEnum):
 
-    LOGIN = '/user/login'
-    DEVICEROSTER = '/discovery/device_roster'
-    W5 = '/w5/deviceData'
-    BLEDEVICES = '/ble/ownSupportBleDevices'
-    BLECONNECT = '/ble/connect'
-    BLEPOLL = '/ble/poll'
     BLECANCEL = '/ble/cancel'
-    DEVICEDETAIL = '/device_detail'
-    CONTROLWF = '/ble/controlDevice'
-    MANUALFEED = '/saveDailyFeed'
-    FEEDERSETTING = '/updateSettings'
-    FEEDERDESICCANTRESET = '/desiccantReset'
+    BLECONNECT = '/ble/connect'
+    BLEDEVICES = '/ble/ownSupportBleDevices'
+    BLEPOLL = '/ble/poll'
+    CALLPET = '/callPet'
     CANCELFEED = '/cancelRealtimeFeed'
-    MINISETTING = '/feedermini/update'
+    CONTROLDEVICE = '/controlDevice'
+    CONTROLWF = '/ble/controlDevice'
+    DEVICEDETAIL = '/device_detail'
+    DEVICERECORD = '/getDeviceRecord'
+    DEVICEROSTER = '/discovery/device_roster'
+    FEEDERDESICCANTRESET = '/desiccantReset'
+    LOGIN = '/user/login'
+    MANUALFEED = '/saveDailyFeed'
     MINIDESICCANTRESET = '/feedermini/desiccant_reset'
     MINIMANUALFEED = '/feedermini/save_dailyfeed'
+    MINISETTING = '/feedermini/update'
+    PETPROPS = '/pet/updatepetprops'
+    REFRESHHOME = '/discovery/refreshHome'
+    SOUNDLIST = '/soundList'
+    STATISTIC = '/statistic'
+    UNIT = '/app/saveunit'
+    UPDATESETTING = '/updateSettings'
+    USERDETAILS = '/user/details2'
+    W5 = '/w5/deviceData'
 
 class FeederSetting(StrEnum):
 
-    SHORTAGEALARM = 'foodWarn'
     CHILDLOCK = 'manualLock'
-    INDICATORLIGHT = 'lightMode'
     DISPENSETONE = 'feedSound'
+    DONOTDISTURB = 'disturbMode'
+    INDICATORLIGHT = 'lightMode'
     MINICHILDLOCK = 'settings.manualLock'
     MINIINDICATORLIGHT = 'settings.lightMode'
+    SELECTEDSOUND = 'selectedSound'
+    SHORTAGEALARM = 'foodWarn'
+    SOUNDENABLE = 'soundEnable'
+    SURPLUS = 'surplus'
+    SURPLUSCONTROL = 'surplusControl'
+    SYSTEMSOUND = 'systemSoundEnable'
+    VOLUME = 'volume'
 
 
 class Header(StrEnum):
@@ -49,6 +65,53 @@ class Header(StrEnum):
     TZ = 'America/New_York'
     CLIENT = 'ios(15.1;iPhone14,3)'
     LOCALE = 'en_US'
+
+
+class LitterBoxCommand(StrEnum):
+
+    POWER = 'power'
+    STARTCLEAN = 'start_clean'
+    PAUSECLEAN = 'stop_clean'
+    RESUMECLEAN = 'continue_clean'
+    ODORREMOVAL = 'start_odor'
+    RESETDEODOR = 'reset_odor'
+
+
+class LitterBoxCommandKey(StrEnum):
+
+    POWER = 'power_action'
+    START = 'start_action'
+    STOP = 'stop_action'
+    CONTINUE = 'continue_action'
+
+
+class LitterBoxCommandType(StrEnum):
+
+    POWER = 'power'
+    START = 'start'
+    STOP = 'stop'
+    CONTINUE = 'continue'
+
+
+class LitterBoxSetting(StrEnum):
+
+    AUTOCLEAN = 'autoWork'
+    AUTOODOR = 'autoRefresh'
+    AVOIDREPEATCLEAN = 'avoidRepeat'
+    CHILDLOCK = 'manualLock'
+    CLEANINTERVAL = 'autoIntervalMin'
+    DELAYCLEANTIME = 'stillTime'
+    DISABLELIGHTWEIGHT = 'underweight'
+    DISPLAY = 'lightMode'
+    DONOTDISTURB = 'disturbMode'
+    KITTENMODE = 'kitten'
+    PERIODICCLEAN = 'fixedTimeClear'
+    PERIODICODOR = 'fixedTimeRefresh'
+    SANDTYPE = 'sandType'
+
+class PetSetting(StrEnum):
+
+    WEIGHT ='weight'
 
 class W5Command(StrEnum):
 
@@ -94,9 +157,36 @@ BLUETOOTH_ERRORS = {
 }
 
 BLE_HEADER = [-6, -4, -3]
-FEEDER_LIST = ['D4', 'FeederMini']
-LITTER_LIST = ['T3', 'T4']
+FEEDER_LIST = ['D3', 'D4', 'FeederMini']
+LITTER_LIST = ['T3']
 WATER_FOUNTAIN_LIST = ['W5']
+
+LB_CMD_TO_KEY = {
+    LitterBoxCommand.POWER: LitterBoxCommandKey.POWER,
+    LitterBoxCommand.STARTCLEAN: LitterBoxCommandKey.START,
+    LitterBoxCommand.PAUSECLEAN: LitterBoxCommandKey.STOP,
+    LitterBoxCommand.RESUMECLEAN: LitterBoxCommandKey.CONTINUE,
+    LitterBoxCommand.ODORREMOVAL: LitterBoxCommandKey.START,
+    LitterBoxCommand.RESETDEODOR: LitterBoxCommandKey.START
+}
+
+LB_CMD_TO_TYPE = {
+    LitterBoxCommand.POWER: LitterBoxCommandType.POWER,
+    LitterBoxCommand.STARTCLEAN: LitterBoxCommandType.START,
+    LitterBoxCommand.PAUSECLEAN: LitterBoxCommandType.STOP,
+    LitterBoxCommand.RESUMECLEAN: LitterBoxCommandType.CONTINUE,
+    LitterBoxCommand.ODORREMOVAL: LitterBoxCommandType.START,
+    LitterBoxCommand.RESETDEODOR: LitterBoxCommandType.START,
+}
+
+LB_CMD_TO_VALUE = {
+    LitterBoxCommand.STARTCLEAN: 0,
+    LitterBoxCommand.PAUSECLEAN: 0,
+    LitterBoxCommand.RESUMECLEAN: 0,
+    LitterBoxCommand.ODORREMOVAL: 2,
+    LitterBoxCommand.RESETDEODOR: 6,
+}
+
 W5_COMMAND_TO_CODE = {
     W5Command.DONOTDISTURB: '221',
     W5Command.DONOTDISTURBOFF: '221',

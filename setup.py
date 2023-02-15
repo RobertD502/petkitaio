@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="petkitaio",
-    version="0.1.0.3",
+    version="0.1.0.4",
     author="Robert Drinovac",
     author_email="unlisted@gmail.com",
     description="Asynchronous Python library for PetKit's API",
@@ -17,6 +17,7 @@ setuptools.setup(
     python_requires= ">=3.7",
     install_requires=[
         "aiohttp>=3.8.1",
+        "tzlocal>=4.2",
     ],
     classifiers=(
         "Programming Language :: Python :: 3",

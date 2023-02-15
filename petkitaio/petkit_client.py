@@ -12,6 +12,7 @@ import urllib.parse as urlencode
 
 from aiohttp import ClientResponse, ClientSession
 import hashlib
+from tzlocal import get_localzone_name
 
 from petkitaio.constants import (
     BLE_HEADER,
@@ -22,7 +23,13 @@ from petkitaio.constants import (
     FEEDER_LIST,
     FeederSetting,
     Header,
+    LB_CMD_TO_KEY,
+    LB_CMD_TO_TYPE,
+    LB_CMD_TO_VALUE,
+    LitterBoxCommand,
+    LitterBoxSetting,
     LITTER_LIST,
+    PetSetting,
     Region,
     TIMEOUT,
     WATER_FOUNTAIN_LIST,
@@ -34,7 +41,7 @@ from petkitaio.constants import (
     W5_SETTINGS_COMMANDS,
 )
 from petkitaio.exceptions import (AuthError, BluetoothError, PetKitError)
-from petkitaio.model import (Feeder, LitterBox, PetKitData, W5Fountain)
+from petkitaio.model import (Feeder, LitterBox, Pet, PetKitData, W5Fountain)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -56,12 +63,15 @@ class PetKitClient:
         self.password: str = password
         self.base_url: Region = Region.US
         self._session: ClientSession = session if session else ClientSession()
+        self.tz: str = get_localzone_name()
         self.timeout: int = timeout
         self.token: str | None = None
         self.token_expiration: datetime | None = None
         self.user_id: str | None = None
         self.has_relay: bool = False
         self.ble_sequence: int = 0
+        self.manually_paused: dict[int, bool] = {}
+        self.manual_pause_end: dict[int, datetime | None] = {}
 
     async def login(self) -> None:
         login_url = f'{self.base_url}{Endpoint.LOGIN}'
@@ -117,6 +127,7 @@ class PetKitClient:
             'Content-Type': Header.CONTENTTYPE,
             'User-Agent': Header.AGENT,
             'X-Client': Header.CLIENT,
+            'X-TimezoneId': self.tz,
         }
         return header
 
@@ -145,6 +156,7 @@ class PetKitClient:
         fountains_data: dict[int, W5Fountain] = {}
         feeders_data: dict[int, Feeder] = {}
         litter_boxes_data: dict[int, LitterBox] = {}
+        pets_data: dict[int, Pet] = {}
 
         devices = device_roster['result']['devices']
         LOGGER.debug(f'Found the following PetKit devices: {devices}')
@@ -229,30 +241,102 @@ class PetKitClient:
                     )
                 # Feeders
                 if device['type'] in FEEDER_LIST:
+                    sound_list: dict[int, str] = {}
                     feeder_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.DEVICEDETAIL}'
                     data = {
                         'id': device['data']['id']
                     }
                     feeder_data = await self._post(feeder_url, header, data)
+
+                    if device['type'] == 'D3':
+                        sound_list[-1] = 'Default'
+                        sound_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.SOUNDLIST}'
+                        sound_data = {
+                            'deviceId': device['data']['id']
+                        }
+                        sound_response = await self._post(sound_url, header, sound_data)
+                        result = sound_response['result']
+                        for sound in result:
+                            sound_list[sound['id']] = sound['name']
+
                     feeders_data[feeder_data['result']['id']] = Feeder(
                         id=feeder_data['result']['id'],
                         data=feeder_data['result'],
-                        type=device['type'].lower()
-                    )
-                # Litter Boxes
-                if device['type'] in LITTER_LIST:
-                    litter_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.DEVICEDETAIL}'
-                    data = {
-                        'id': device['data']['id']
-                    }
-                    litter_data = await self._post(litter_url, header, data)
-                    litter_boxes_data[litter_data['result']['id']] = LitterBox(
-                        id=litter_data['result']['id'],
-                        data=litter_data['result'],
-                        type=device['type'].lower()
+                        type=device['type'].lower(),
+                        sound_list=sound_list
                     )
 
-        return PetKitData(user_id=self.user_id, feeders=feeders_data, litter_boxes=litter_boxes_data, water_fountains=fountains_data)
+                # Litter Boxes
+                if device['type'] in LITTER_LIST:
+                    ### Fetch device_detail page
+                    dd_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.DEVICEDETAIL}'
+                    dd_data = {
+                        'id': device['data']['id']
+                    }
+                    device_detail = await self._post(dd_url, header, dd_data)
+
+                    ### Fetch DeviceRecord page
+                    dr_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.DEVICERECORD}'
+                    dr_data = {
+                        'day': str(datetime.now().date()).replace('-', ''),
+                        'deviceId': device['data']['id']
+                    }
+                    device_record = await self._post(dr_url, header, dr_data)
+
+                    ### Fetch statistic page
+                    stat_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.STATISTIC}'
+                    stat_data = {
+                        'deviceId': device['data']['id'],
+                        'endDate': str(datetime.now().date()).replace('-', ''),
+                        'startDate': str(datetime.now().date()).replace('-', ''),
+                        'type': 0
+                    }
+                    device_stats = await self._post(stat_url, header, stat_data)
+
+                    if device_detail['result']['id'] in self.manually_paused:
+                        # Check to see if manual pause is currently True
+                        if self.manually_paused[device_detail['result']['id']]:
+                            await self.check_manual_pause_expiration(device_detail['result']['id'])
+                            manually_paused = self.manually_paused[device_detail['result']['id']]
+                        else:
+                            manually_paused = False
+                    else:
+                        # Set to False on initial run
+                        manually_paused = False
+
+                    if device_detail['result']['id'] in self.manual_pause_end:
+                        manual_pause_end = self.manual_pause_end[device_detail['result']['id']]
+                    else:
+                        # Set to None on initial run
+                        manual_pause_end = None
+
+                    ### Create LitterBox Object
+                    litter_boxes_data[device_detail['result']['id']] = LitterBox(
+                        id=device_detail['result']['id'],
+                        device_detail=device_detail['result'],
+                        device_record=device_record['result'],
+                        statistics=device_stats['result'],
+                        type=device['type'].lower(),
+                        manually_paused=manually_paused,
+                        manual_pause_end=manual_pause_end,
+                    )
+        ### Get user details page
+        details_url = f'{self.base_url}{Endpoint.USERDETAILS}'
+        details_data = {
+            'userId': self.user_id
+        }
+        user_details = await self._post(details_url, header, details_data)
+        user_pets = user_details['result']['user']['dogs']
+        if user_pets:
+            for pet in user_pets:
+                ### Create Pet Object
+                pets_data[int(pet['id'])] = Pet(
+                    id=pet['id'],
+                    data=pet,
+                    type=pet['type']['name']
+                )
+
+        return PetKitData(user_id=self.user_id, feeders=feeders_data, litter_boxes=litter_boxes_data, water_fountains=fountains_data, pets=pets_data)
 
 
     async def _post(self, url: str, headers: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:
@@ -446,6 +530,17 @@ class PetKitClient:
             i = i2
         return byte_list
 
+    async def get_litter_box_record(self, id: int, type: str, header: dict[str, Any]) -> dict[str, Any]:
+        """Fetch the litter box getDeviceRecord endpoint."""
+
+        url = f'{self.base_url}/{type}{Endpoint.DEVICERECORD}'
+        data = {
+            'day': str(datetime.now().date()).replace('-', ''),
+            'deviceId': id
+        }
+        response = await self._post(url, header, data)
+        return response
+
     async def control_water_fountain(self, water_fountain: W5Fountain, command: W5Command):
         """Set the mode on W5 Water Fountain."""
         if water_fountain.ble_relay is None:
@@ -500,6 +595,71 @@ class PetKitClient:
             # Reset ble_sequence
             self.ble_sequence = 0
 
+    async def call_pet(self, feeder: Feeder) -> None:
+        """Call pet on D3 (Infinity) feeder."""
+
+        url = f'{self.base_url}/{feeder.type}{Endpoint.CALLPET}'
+        header = await self.create_header()
+        data = {
+            'deviceId': feeder.id
+        }
+        await self._post(url, header, data)
+
+    async def control_litter_box(self, litter_box: LitterBox, command: LitterBoxCommand) -> None:
+        """Control PetKit litter boxes."""
+
+        url = f'{self.base_url}/{litter_box.type}{Endpoint.CONTROLDEVICE}'
+        value: int = 0
+        if command == LitterBoxCommand.POWER:
+            #If litter box is currently turned on then you want the command to turn it off
+            if litter_box.device_detail['state']['power'] == 1:
+                value = 0
+            else:
+                value = 1
+        else:
+            value = LB_CMD_TO_VALUE[command]
+
+        key = LB_CMD_TO_KEY[command]
+        header = await self.create_header()
+
+        command_dict = {
+            key: value
+        }
+        data = {
+            'id': litter_box.id,
+            'kv': json.dumps(command_dict),
+            'type': LB_CMD_TO_TYPE[command]
+        }
+        await self._post(url, header, data)
+
+        ### If the current session was ended while the device was paused, the new session wouldn't know the manual pause is active.
+        ### Only way of resuming cleaning is to send the STARTCLEAN command followed by a RESUMECLEAN command.
+        ### In addition, the resume command doesn't work by itself - start followed by resume is always needed if currently paused.
+        ### Check if the device is currently paused - if so, the resume command needs to be sent after start clean.
+        if command == LitterBoxCommand.STARTCLEAN:
+            await asyncio.sleep(1)
+            record = await self.get_litter_box_record(litter_box.id, litter_box.type, header)
+            if record['result']:
+                last_item = record['result'][-1]
+                if last_item['enumEventType'] == 'clean_over':
+                    if (last_item['content']['startReason'] == 2) and (last_item['content']['result'] == 3):
+                        await self.control_litter_box(litter_box, LitterBoxCommand.RESUMECLEAN)
+                        self.manually_paused[litter_box.id] = False
+                        self.manual_pause_end[litter_box.id] = None
+
+        if command == LitterBoxCommand.PAUSECLEAN:
+            self.manually_paused[litter_box.id] = True
+            ## The manual pause will end after a 10-minute wait + 1 minute to complete cleaning
+            self.manual_pause_end[litter_box.id] = datetime.now() + timedelta(seconds=660)
+
+    async def check_manual_pause_expiration(self, id: int):
+        """Check to see if manual pause has expired and litter box resumed the cleanin on its own."""
+
+        current_dt = datetime.now()
+        current_end = self.manual_pause_end[id]
+        if (current_end - current_dt).total_seconds() <= 0:
+            self.manual_pause_end[id] = None
+            self.manually_paused[id] = False
 
     async def manual_feeding(self, feeder: Feeder, amount: int) -> None:
         """Dispense food manually.
@@ -525,15 +685,44 @@ class PetKitClient:
 
         if feeder.type == 'feedermini':
             url = f'{self.base_url}{Endpoint.MINISETTING}'
+        # D3 and D4 Feeders
         else:
-            url = f'{self.base_url}/{feeder.type}{Endpoint.FEEDERSETTING}'
+            url = f'{self.base_url}/{feeder.type}{Endpoint.UPDATESETTING}'
         header = await self.create_header()
-        setting = {
+        setting_dict = {
             setting: value
         }
         data = {
             'id': feeder.id,
-            'kv': json.dumps(setting)
+            'kv': json.dumps(setting_dict)
+        }
+        await self._post(url, header, data)
+
+    async def update_litter_box_settings(self, litter_box: LitterBox, setting: LitterBoxSetting | None = None, value: int | None = None) -> None:
+        """Change the setting on a litter box."""
+
+        url = f'{self.base_url}/{litter_box.type}{Endpoint.UPDATESETTING}'
+        header = await self.create_header()
+        setting_dict = {
+            setting: value
+        }
+        data = {
+            'id': litter_box.id,
+            'kv': json.dumps(setting_dict)
+        }
+        await self._post(url, header, data)
+
+    async def update_pet_settings(self, pet: Pet, setting: PetSetting, value: int | float) -> None:
+        """Change the setting for a pet."""
+
+        url = f'{self.base_url}{Endpoint.PETPROPS}'
+        header = await self.create_header()
+        setting_dict = {
+            setting: value
+        }
+        data = {
+            'petId': int(pet.id),
+            'kv': json.dumps(setting_dict)
         }
         await self._post(url, header, data)
 
