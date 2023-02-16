@@ -13,13 +13,10 @@ This is PetKit's undocumented API. With that said, future changes made by PetKit
 
 ## Important
 
-`If you don't have a water fountain on your PetKit account:`
-Create a new PetKit account and share your devices from your original account to it. This will allow you to use your main account on the mobile app, and the secondary account with this library. Otherwise, your main account will get logged out of the mobile app when using this library. This is a limitation of how PetKit handles authorization.
+PetKit accounts can only be logged in on one device at a time. Using this library will result in getting signed out of the mobile app. You can avoid this by creating a secondary account and sharing devices from the main account (except water fountains). However, some device functionality is lost when using a secondary account as well as not being able to share pets between accounts.
 
-`If you do have a water fountain:`
-Unfortunately, there is no way of sharing a water fountain with a secondary account. As a result, you will need to use your main PetKit account to pull in water fountain data. When doing so, your main account will get signed out of any mobile app it is currently signed in on. This is a limitation of how PetKit handles authorization. If you only want to pull in data for non-water fountain devices, see "If you don't have a water fountain on your PetKit account" above.
 
-This package depends on [aiohttp](https://docs.aiohttp.org/en/stable/) and requires `Python 3.7` or greater.
+This package depends on [aiohttp](https://docs.aiohttp.org/en/stable/) and [tzlocal](https://pypi.org/project/tzlocal/). `Python 3.7` or greater is required.
 
 ## Usage
 
