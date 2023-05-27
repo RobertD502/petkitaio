@@ -1,0 +1,138 @@
+## workMode 9: Maintenance Mode
+workProcess of 10 = start maintenance mode
+workProcess of 30 = end maintenance mode
+If end maintenance mode is pause:
+    workProcess will change from 30 to 40
+If then you resume ending maintenance mode:
+    workProcess will change from 40 to 30
+
+
+// Disregard
+if current work process / 10 = 3 --> pause maintenance and set workProcess of 40; else set workProcess to 20
+if current work process / 10 = 4 --> re-end maintenance mode and set workProcess to 30; else set workProcess to 10
+// Disregard
+
+
+    if workProcess / 10 = 1:
+        "In maintenance mode"
+    if workProcess / 10 = 2 and workProcess % 10 = 2:
+        "Maintenance mode paused"
+        if safeWarn in workState:
+            if safeWarn !=0:
+                if safeWarn == 1:
+                    "Maintenance mode paused: Pet entered while in operation, anti-pinch sensors activated, device stopped working. Please check the device ASAP.
+                if safeWarn == 3:
+                    "Maintenance mode paused: The top cover is not installed, operation paused"
+                else:
+                    "Maintenance mode paused: System error, operation paused"
+            if safeWarn == 0:
+                if petInTime == 0:
+                    "Maintenance mode paused: Your cat is approaching, operation paused"
+                else:
+                    "Maintenance mode paused: Your cat is using the device, operation paused"
+    if workProcess / 10 = 3:
+        "Exiting maintenance mode"
+    if workProcess / 10 == 4:
+        "Maintenance mode exiting paused"
+        if workProcess % 10 == 2:
+            if safeWarn in workState:
+                if safeWarn !=0:
+                    if safeWarn == 1:
+                        "Maintenance mode exiting paused: Pet entered while in operation, anti-pinch sensors activated, device stopped working. Please check the device ASAP."
+                    if safeWarn == 3:
+                        "Maintenance mode exiting paused: The top cover is not installed, operation paused"
+                    else:
+                        "Maintenance mode exiting paused: System error, operation paused"
+                if safeWarn == 0:
+                    if petInTime == 0:
+                        "Maintenance mode exiting paused: Your cat is approaching, operation paused"
+                    else:
+                        "Maintenance mode exiting paused: Your cat is using the device, operation paused"
+
+
+## workMode 0: Start Cleaning
+
+if workProcess / 10 = 1:
+    "Cleaning litter box"
+if workProcess / 10 = 2:
+    "Litter box cleaning paused"
+    if workProcess % 10 = 2:
+        if safeWarn in workState:
+            if safeWarn !=0:
+                if safeWarn == 1:
+                    "Litter box cleaning paused: Pet entered while in operation, anti-pinch sensors activated, device stopped working. Please check the device ASAP."
+                else:
+                    "Litter box cleaning paused: System error, operation paused"
+            if safeWarn == 0:
+                if petInTime == 0:
+                    "Litter box cleaning paused: Your cat is approaching, operation paused"
+                else:
+                    "Litter box cleaning paused: Your cat is using the device, operation paused"
+    if workProcess % 10 = 3:
+        "Resetting device"
+    if workProcess % 10 = 4:
+        "Litter box paused"
+        if workProcess % 10 = 2:
+            if safeWarn in workState:
+                if safeWarn != 0:
+                    if safeWarn == 1:
+                        "Litter box paused: Pet entered while in operation, anti-pinch sensors activated, device stopped working. Please check the device ASAP."
+                    else:
+                        "Litter box paused: System error, operation paused"
+                if safeWarn == 0:
+                    if petInTime == 0:
+                        "Litter box paused: Your cat is approaching, operation paused"
+                    else:
+                        "Litter box paused: Your cat is using the device, operation paused"
+
+
+## workMode 1: Dump Cat litter
+
+if workProcess / 10 = 1:
+    "Dumping cat litter"
+if workProcess / 10 = 2:
+    "Dumping cat litter paused"
+    if workProcess % 10 = 2:
+        if safeWarn in workState:
+            if safeWarn !=0:
+                if safeWarn == 1:
+                    "Dumping cat litter paused: Pet entered while in operation, anti-pinch sensors activated, device stopped working. Please check the device ASAP."
+                else:
+                    "Dumping cat litter paused: System error, operation paused"
+            if safeWarn == 0:
+                if petInTime == 0:
+                    "Dumping cat litter paused: Your cat is approaching, operation paused"
+                else:
+                    "Dumping cat litter paused: Your cat is using the device, operation paused"
+    if workProcess % 10 = 3:
+        "Resetting device"
+    if workProcess % 10 = 4:
+        "Litter box paused"
+        if workProcess % 10 = 2:
+            if safeWarn in workState:
+                if safeWarn != 0:
+                    if safeWarn == 1:
+                        "Litter box paused: Pet entered while in operation, anti-pinch sensors activated, device stopped working. Please check the device ASAP."
+                    else:
+                        "Litter box paused: System error, operation paused"
+                if safeWarn == 0:
+                    if petInTime == 0:
+                        "Litter box paused: Your cat is approaching, operation paused"
+                    else:
+                        "Litter box paused: Your cat is using the device, operation paused"
+
+## workMode 3: Dump Cat litter
+    "Resetting"
+
+
+## workMode 4: Leveling cat litter
+    "Leveling cat litter, please wait."
+
+## workMode 5: Calibrating
+
+    "Calibrating litter box, please wait."
+
+
+if refreshState key in state:
+    if workProcess = 1:
+        "Odor removal in operation. Please wait."
