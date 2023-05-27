@@ -15,11 +15,11 @@ import hashlib
 from tzlocal import get_localzone_name
 
 from petkitaio.constants import (
+    AUTH_ERROR_CODES,
     BLE_HEADER,
     BLUETOOTH_ERRORS,
     CLIENT_DICT,
     Endpoint,
-    ERROR_CODES,
     FEEDER_LIST,
     FeederSetting,
     Header,
@@ -31,6 +31,7 @@ from petkitaio.constants import (
     LITTER_LIST,
     PetSetting,
     Region,
+    SERVER_ERROR_CODES,
     TIMEOUT,
     WATER_FOUNTAIN_LIST,
     W5Command,
@@ -40,7 +41,7 @@ from petkitaio.constants import (
     W5_LIGHT_POWER,
     W5_SETTINGS_COMMANDS,
 )
-from petkitaio.exceptions import (AuthError, BluetoothError, PetKitError)
+from petkitaio.exceptions import (AuthError, BluetoothError, PetKitError, ServerError)
 from petkitaio.model import (Feeder, LitterBox, Pet, PetKitData, W5Fountain)
 
 LOGGER = logging.getLogger(__name__)
@@ -78,10 +79,10 @@ class PetKitClient:
 
         headers = {
             'Accept': Header.ACCEPT,
-            'Accept-Language': Header.ACCEPTLANG,
+            'Accept-Language': Header.ACCEPT_LANG,
             'Accept-Encoding': Header.ENCODING,
-            'X-Api-Version': Header.APIVERSION,
-            'Content-Type': Header.CONTENTTYPE,
+            'X-Api-Version': Header.API_VERSION,
+            'Content-Type': Header.CONTENT_TYPE,
             'User-Agent': Header.AGENT,
             'X-Client': Header.CLIENT,
         }
@@ -89,7 +90,7 @@ class PetKitClient:
         data = {
             'client': str(CLIENT_DICT),
             'encrypt': '1',
-            'oldVersion': Header.APIVERSION,
+            'oldVersion': Header.API_VERSION,
             'password': hashlib.md5(self.password.encode()).hexdigest(),
             'username': self.username
         }
@@ -121,10 +122,10 @@ class PetKitClient:
             'X-Session': self.token,
             'F-Session': self.token,
             'Accept': Header.ACCEPT,
-            'Accept-Language': Header.ACCEPTLANG,
+            'Accept-Language': Header.ACCEPT_LANG,
             'Accept-Encoding': Header.ENCODING,
-            'X-Api-Version': Header.APIVERSION,
-            'Content-Type': Header.CONTENTTYPE,
+            'X-Api-Version': Header.API_VERSION,
+            'Content-Type': Header.CONTENT_TYPE,
             'User-Agent': Header.AGENT,
             'X-Client': Header.CLIENT,
             'X-TimezoneId': self.tz,
@@ -135,7 +136,7 @@ class PetKitClient:
         """Fetch device roster endpoint to get all available devices."""
 
         await self.check_token()
-        url = f'{self.base_url}{Endpoint.DEVICEROSTER}'
+        url = f'{self.base_url}{Endpoint.DEVICE_ROSTER}'
         header = await self.create_header()
         data = {
             'day': str(datetime.now().date()).replace('-', ''),
@@ -176,7 +177,7 @@ class PetKitClient:
                         ble_available: bool = False
                         main_online: bool = False
                         fountain_tcode = str(device['data']['typeCode'])
-                        ble_url = f'{self.base_url}{Endpoint.BLEDEVICES}'
+                        ble_url = f'{self.base_url}{Endpoint.BLE_DEVICES}'
                         relay_devices = await self._post(ble_url, header, data={})
                         if relay_devices['result']:
                             ble_available = True
@@ -192,7 +193,7 @@ class PetKitClient:
                                 mac = device_details['result']['mac']
                                 type_code = int(f'1{fountain_tcode}')
                                 relay_tc = type_code
-                                conn_url = f'{self.base_url}{Endpoint.BLECONNECT}'
+                                conn_url = f'{self.base_url}{Endpoint.BLE_CONNECT}'
                                 ble_data = {
                                     'bleId': device_details['result']['id'],
                                     'mac': mac,
@@ -204,7 +205,7 @@ class PetKitClient:
                                     LOGGER.warning(f'BLE connection to {device_details["result"]["name"]} failed. Will try again during next refresh.')
                                     fountain_data = device_details
                                 else:
-                                    poll_url = f'{self.base_url}{Endpoint.BLEPOLL}'
+                                    poll_url = f'{self.base_url}{Endpoint.BLE_POLL}'
                                     poll_resp = await self._post(poll_url, header, ble_data)
                                     if poll_resp['result'] != 0:
                                         LOGGER.warning(
@@ -242,7 +243,7 @@ class PetKitClient:
                 # Feeders
                 if device['type'] in FEEDER_LIST:
                     sound_list: dict[int, str] = {}
-                    feeder_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.DEVICEDETAIL}'
+                    feeder_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.DEVICE_DETAIL}'
                     data = {
                         'id': device['data']['id']
                     }
@@ -250,7 +251,7 @@ class PetKitClient:
 
                     if device['type'] == 'D3':
                         sound_list[-1] = 'Default'
-                        sound_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.SOUNDLIST}'
+                        sound_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.SOUND_LIST}'
                         sound_data = {
                             'deviceId': device['data']['id']
                         }
@@ -269,16 +270,20 @@ class PetKitClient:
                 # Litter Boxes
                 if device['type'] in LITTER_LIST:
                     ### Fetch device_detail page
-                    dd_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.DEVICEDETAIL}'
+                    dd_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.DEVICE_DETAIL}'
                     dd_data = {
                         'id': device['data']['id']
                     }
                     device_detail = await self._post(dd_url, header, dd_data)
 
                     ### Fetch DeviceRecord page
-                    dr_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.DEVICERECORD}'
+                    dr_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.DEVICE_RECORD}'
+                    if device['type'] == 'T4':
+                        date_key = 'date'
+                    else:
+                        date_key = 'day'
                     dr_data = {
-                        'day': str(datetime.now().date()).replace('-', ''),
+                        date_key: str(datetime.now().date()).replace('-', ''),
                         'deviceId': device['data']['id']
                     }
                     device_record = await self._post(dr_url, header, dr_data)
@@ -321,7 +326,7 @@ class PetKitClient:
                         manual_pause_end=manual_pause_end,
                     )
         ### Get user details page
-        details_url = f'{self.base_url}{Endpoint.USERDETAILS}'
+        details_url = f'{self.base_url}{Endpoint.USER_DETAILS}'
         details_data = {
             'userId': self.user_id
         }
@@ -358,8 +363,10 @@ class PetKitClient:
             raise PetKitError(f'Could not return json {error}') from error
         if 'error' in response:
             code = response['error']['code']
-            if code in ERROR_CODES:
-                raise AuthError(f'PetKit Error {code}: {ERROR_CODES[code]}')
+            if code in AUTH_ERROR_CODES:
+                raise AuthError(f'PetKit Error {code}: {AUTH_ERROR_CODES[code]}')
+            elif code in SERVER_ERROR_CODES:
+                raise ServerError(f'PetKit Error {code}: {SERVER_ERROR_CODES[code]}')
             elif code in BLUETOOTH_ERRORS:
                 raise BluetoothError(f'{BLUETOOTH_ERRORS[code]}')
             else:
@@ -372,9 +379,9 @@ class PetKitClient:
 
     async def initial_ble_commands(self, device: dict[str, Any], relay_type: int) -> None:
         """We have to make two calls to get updated date from the water fountain."""
-        command_url = f'{self.base_url}{Endpoint.CONTROLWF}'
+        command_url = f'{self.base_url}{Endpoint.CONTROL_WF}'
         header = await self.create_header()
-        data1 = await self.create_ble_data(W5Command.FIRSTBLECMND)
+        data1 = await self.create_ble_data(W5Command.FIRST_BLE_CMND)
         first_command = {
             'bleId': device['result']['id'],
             'cmd': '215',
@@ -385,7 +392,7 @@ class PetKitClient:
         await self._post(command_url, header, first_command)
         self.ble_sequence += 1
 
-        data2 = await self.create_ble_data(W5Command.SECONDBLECMND)
+        data2 = await self.create_ble_data(W5Command.SECOND_BLE_CMND)
         second_command = {
             'bleId': device['result']['id'],
             'cmd': '216',
@@ -401,49 +408,49 @@ class PetKitClient:
         """Create URL encoded data from specific byte array."""
 
         byte_list: list = []
-        if command == W5Command.FIRSTBLECMND:
+        if command == W5Command.FIRST_BLE_CMND:
             byte_list = [-6, -4, -3, -41, 1, self.ble_sequence, 0, 0, -5]
-        if command == W5Command.SECONDBLECMND:
+        if command == W5Command.SECOND_BLE_CMND:
             byte_list = [-6, -4, -3, -40, 1, self.ble_sequence, 0, 0, -5]
-        if command == W5Command.NORMALTOPAUSE:
+        if command == W5Command.NORMAL_TO_PAUSE:
             byte_list = [-6, -4, -3, -36, 1, self.ble_sequence, 2, 0, 0, 1, -5]
-        if command == W5Command.SMARTTOPAUSE:
+        if command == W5Command.SMART_TO_PAUSE:
             byte_list = [-6, -4, -3, -36, 1, self.ble_sequence, 2, 0, 0, 2, -5]
         if command == W5Command.NORMAL:
             byte_list = [-6, -4, -3, -36, 1, self.ble_sequence, 2, 0, 1, 1, -5]
         if command == W5Command.SMART:
             byte_list = [-6, -4, -3, -36, 1, self.ble_sequence, 2, 0, 1, 2, -5]
 
-        if command == W5Command.LIGHTOFF:
+        if command == W5Command.LIGHT_OFF:
             # byte_list example = [-6, -4, -3, -35, 1, self.ble_sequence, 13, 0, 3, 3, 0, light_brightness, 0, 0, 0, 0, 0, 5, 40, 1, 104, -5]
             data_list = await self.w5_command_data_creator(device=device, command=command, setting=[0])
             byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
 
-        if command == W5Command.LIGHTON:
+        if command == W5Command.LIGHT_ON:
             data_list = await self.w5_command_data_creator(device=device, command=command, setting=[1])
             byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
 
-        if command == W5Command.LIGHTLOW:
+        if command == W5Command.LIGHT_LOW:
             data_list = await self.w5_command_data_creator(device=device, command=command, setting=[1])
             byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
 
-        if command == W5Command.LIGHTMEDIUM:
+        if command == W5Command.LIGHT_MEDIUM:
             data_list = await self.w5_command_data_creator(device=device, command=command, setting=[2])
             byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
 
-        if command == W5Command.LIGHTHIGH:
+        if command == W5Command.LIGHT_HIGH:
             data_list = await self.w5_command_data_creator(device=device, command=command, setting=[3])
             byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
 
-        if command == W5Command.DONOTDISTURB:
+        if command == W5Command.DO_NOT_DISTURB:
             data_list = await self.w5_command_data_creator(device=device, command=command, setting=[1])
             byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
 
-        if command == W5Command.DONOTDISTURBOFF:
+        if command == W5Command.DO_NOT_DISTURB_OFF:
             data_list = await self.w5_command_data_creator(device=device, command=command, setting=[0])
             byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
 
-        if command == W5Command.RESETFILTER:
+        if command == W5Command.RESET_FILTER:
             byte_list = [-6, -4, -3, -34, 1, self.ble_sequence, 0, 0, -5]
 
         byte_array = bytearray([x % 256 for x in byte_list])
@@ -533,7 +540,7 @@ class PetKitClient:
     async def get_litter_box_record(self, id: int, type: str, header: dict[str, Any]) -> dict[str, Any]:
         """Fetch the litter box getDeviceRecord endpoint."""
 
-        url = f'{self.base_url}/{type}{Endpoint.DEVICERECORD}'
+        url = f'{self.base_url}/{type}{Endpoint.DEVICE_RECORD}'
         data = {
             'day': str(datetime.now().date()).replace('-', ''),
             'deviceId': id
@@ -552,9 +559,9 @@ class PetKitClient:
                     raise PetKitError(f'{water_fountain.data["name"]} is already paused.')
                 else:
                     if water_fountain.data['mode'] == 1:
-                        ble_data = await self.create_ble_data(W5Command.NORMALTOPAUSE, water_fountain)
+                        ble_data = await self.create_ble_data(W5Command.NORMAL_TO_PAUSE, water_fountain)
                     else:
-                        ble_data = await self.create_ble_data(W5Command.SMARTTOPAUSE, water_fountain)
+                        ble_data = await self.create_ble_data(W5Command.SMART_TO_PAUSE, water_fountain)
 
             # make sure light is on if brightness is being set
             elif command in W5_LIGHT_BRIGHTNESS:
@@ -573,9 +580,9 @@ class PetKitClient:
                 'mac': water_fountain.data['mac'],
                 'type': water_fountain.ble_relay
             }
-            connect_url = f'{self.base_url}{Endpoint.BLECONNECT}'
-            poll_url = f'{self.base_url}{Endpoint.BLEPOLL}'
-            command_url = f'{self.base_url}{Endpoint.CONTROLWF}'
+            connect_url = f'{self.base_url}{Endpoint.BLE_CONNECT}'
+            poll_url = f'{self.base_url}{Endpoint.BLE_POLL}'
+            command_url = f'{self.base_url}{Endpoint.CONTROL_WF}'
             cmnd_code = W5_COMMAND_TO_CODE[command]
 
             command_data = {
@@ -598,7 +605,7 @@ class PetKitClient:
     async def call_pet(self, feeder: Feeder) -> None:
         """Call pet on D3 (Infinity) feeder."""
 
-        url = f'{self.base_url}/{feeder.type}{Endpoint.CALLPET}'
+        url = f'{self.base_url}/{feeder.type}{Endpoint.CALL_PET}'
         header = await self.create_header()
         data = {
             'deviceId': feeder.id
@@ -608,14 +615,34 @@ class PetKitClient:
     async def control_litter_box(self, litter_box: LitterBox, command: LitterBoxCommand) -> None:
         """Control PetKit litter boxes."""
 
-        url = f'{self.base_url}/{litter_box.type}{Endpoint.CONTROLDEVICE}'
+        url = f'{self.base_url}/{litter_box.type}{Endpoint.CONTROL_DEVICE}'
         value: int = 0
+
+        if litter_box.type == 't4':
+            if command == LitterBoxCommand.START_CLEAN:
+                # If the litter box is currently paused then send a resume cleaning command.
+                # Otherwise, you can't start a manual clean while it is in an unsupported mode.
+                if 'workState' in litter_box.device_detail['state']:
+                    state =  litter_box.device_detail['state']['workState']
+                    # This workState is equivalent to a paused manual cleaning
+                    if (state['workMode'] == 0) and (state['workProcess'] == 20):
+                        command = LitterBoxCommand.RESUME_CLEAN
+                        self.manually_paused[litter_box.id] = False
+                        self.manual_pause_end[litter_box.id] = None
+                    else:
+                        raise PetKitError('Unable to call start cleaning command while litter box is in operation.')
+            if command == LitterBoxCommand.PAUSE_CLEAN:
+                self.manually_paused[litter_box.id] = True
+                ## The manual pause will end after a 10-minute wait + 1 minute to complete cleaning
+                self.manual_pause_end[litter_box.id] = datetime.now() + timedelta(seconds=660)
+
         if command == LitterBoxCommand.POWER:
             #If litter box is currently turned on then you want the command to turn it off
             if litter_box.device_detail['state']['power'] == 1:
                 value = 0
             else:
                 value = 1
+        # For all non-power commands, get the value associated with the command
         else:
             value = LB_CMD_TO_VALUE[command]
 
@@ -632,25 +659,27 @@ class PetKitClient:
         }
         await self._post(url, header, data)
 
-        ### If the current session was ended while the device was paused, the new session wouldn't know the manual pause is active.
-        ### Only way of resuming cleaning is to send the STARTCLEAN command followed by a RESUMECLEAN command.
+        ### For Pura X, if the current session was ended while the device was paused, the new session wouldn't know the manual pause is active.
+        ### Only way of resuming cleaning is to send the START_CLEAN command followed by a RESUME_CLEAN command.
         ### In addition, the resume command doesn't work by itself - start followed by resume is always needed if currently paused.
         ### Check if the device is currently paused - if so, the resume command needs to be sent after start clean.
-        if command == LitterBoxCommand.STARTCLEAN:
-            await asyncio.sleep(1)
-            record = await self.get_litter_box_record(litter_box.id, litter_box.type, header)
-            if record['result']:
-                last_item = record['result'][-1]
-                if last_item['enumEventType'] == 'clean_over':
-                    if (last_item['content']['startReason'] in [0, 1, 2, 3]) and (last_item['content']['result'] == 3):
-                        await self.control_litter_box(litter_box, LitterBoxCommand.RESUMECLEAN)
-                        self.manually_paused[litter_box.id] = False
-                        self.manual_pause_end[litter_box.id] = None
+        ### Unlike the Pura Max, we need to send the START clean command before getting the litter box record due to the Pura X not returning its current workState.
+        if litter_box.type == 't3':
+            if command == LitterBoxCommand.START_CLEAN:
+                await asyncio.sleep(1)
+                record = await self.get_litter_box_record(litter_box.id, litter_box.type, header)
+                if record['result']:
+                    last_item = record['result'][-1]
+                    if last_item['enumEventType'] == 'clean_over':
+                        if (last_item['content']['startReason'] in [0, 1, 2, 3]) and (last_item['content']['result'] == 3):
+                            await self.control_litter_box(litter_box, LitterBoxCommand.RESUME_CLEAN)
+                            self.manually_paused[litter_box.id] = False
+                            self.manual_pause_end[litter_box.id] = None
 
-        if command == LitterBoxCommand.PAUSECLEAN:
-            self.manually_paused[litter_box.id] = True
-            ## The manual pause will end after a 10-minute wait + 1 minute to complete cleaning
-            self.manual_pause_end[litter_box.id] = datetime.now() + timedelta(seconds=660)
+            if command == LitterBoxCommand.PAUSE_CLEAN:
+                self.manually_paused[litter_box.id] = True
+                ## The manual pause will end after a 10-minute wait + 1 minute to complete cleaning
+                self.manual_pause_end[litter_box.id] = datetime.now() + timedelta(seconds=660)
 
     async def check_manual_pause_expiration(self, id: int):
         """Check to see if manual pause has expired and litter box resumed the cleanin on its own."""
@@ -668,9 +697,9 @@ class PetKitClient:
         """
 
         if feeder.type == 'feedermini':
-            url = f'{self.base_url}{Endpoint.MINIMANUALFEED}'
+            url = f'{self.base_url}{Endpoint.MINI_MANUAL_FEED}'
         else:
-            url = f'{self.base_url}/{feeder.type}{Endpoint.MANUALFEED}'
+            url = f'{self.base_url}/{feeder.type}{Endpoint.MANUAL_FEED}'
         header = await self.create_header()
         data = {
             'amount': amount,
@@ -684,10 +713,10 @@ class PetKitClient:
         """Change the setting on a feeder."""
 
         if feeder.type == 'feedermini':
-            url = f'{self.base_url}{Endpoint.MINISETTING}'
+            url = f'{self.base_url}{Endpoint.MINI_SETTING}'
         # D3 and D4 Feeders
         else:
-            url = f'{self.base_url}/{feeder.type}{Endpoint.UPDATESETTING}'
+            url = f'{self.base_url}/{feeder.type}{Endpoint.UPDATE_SETTING}'
         header = await self.create_header()
         setting_dict = {
             setting: value
@@ -701,7 +730,7 @@ class PetKitClient:
     async def update_litter_box_settings(self, litter_box: LitterBox, setting: LitterBoxSetting | None = None, value: int | None = None) -> None:
         """Change the setting on a litter box."""
 
-        url = f'{self.base_url}/{litter_box.type}{Endpoint.UPDATESETTING}'
+        url = f'{self.base_url}/{litter_box.type}{Endpoint.UPDATE_SETTING}'
         header = await self.create_header()
         setting_dict = {
             setting: value
@@ -715,7 +744,7 @@ class PetKitClient:
     async def update_pet_settings(self, pet: Pet, setting: PetSetting, value: int | float) -> None:
         """Change the setting for a pet."""
 
-        url = f'{self.base_url}{Endpoint.PETPROPS}'
+        url = f'{self.base_url}{Endpoint.PET_PROPS}'
         header = await self.create_header()
         setting_dict = {
             setting: value
@@ -729,7 +758,7 @@ class PetKitClient:
     async def cancel_manual_feed(self, feeder: Feeder) -> None:
         """Cancel a manual feed that is currently in progress. Not available for mini feeders"""
 
-        url = f'{self.base_url}/{feeder.type}{Endpoint.CANCELFEED}'
+        url = f'{self.base_url}/{feeder.type}{Endpoint.CANCEL_FEED}'
         header = await self.create_header()
         data = {
             'day': str(datetime.now().date()).replace('-', ''),
@@ -741,11 +770,23 @@ class PetKitClient:
         """Reset the desiccant of a single feeder."""
 
         if feeder.type == 'feedermini':
-            url = f'{self.base_url}{Endpoint.MINIDESICCANTRESET}'
+            url = f'{self.base_url}{Endpoint.MINI_DESICCANT_RESET}'
         else:
-            url = f'{self.base_url}/{feeder.type}{Endpoint.FEEDERDESICCANTRESET}'
+            url = f'{self.base_url}/{feeder.type}{Endpoint.FEEDER_DESICCANT_RESET}'
         header = await self.create_header()
         data = {
             'deviceId': feeder.id
+        }
+        await self._post(url, header, data)
+
+    async def reset_pura_max_deodorizer(self, litter_box: LitterBox) -> None:
+        """Reset the N50 odor eliminator for Pura Max."""
+
+        if litter_box.type != 't4':
+            raise PetKitError('Invalid litter box type. Only Pura Max litter boxes have N50 odor eliminators.')
+        url = f'{self.base_url}/{litter_box.type}{Endpoint.MAX_ODOR_RESET}'
+        header = await self.create_header()
+        data = {
+            'deviceId': litter_box.id
         }
         await self._post(url, header, data)
