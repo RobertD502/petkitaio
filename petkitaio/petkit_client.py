@@ -15,6 +15,7 @@ import hashlib
 from tzlocal import get_localzone_name
 
 from petkitaio.constants import (
+    ASIA_REGIONS,
     AUTH_ERROR_CODES,
     BLE_HEADER,
     BLUETOOTH_ERRORS,
@@ -62,7 +63,9 @@ class PetKitClient:
 
         self.username: str = username
         self.password: str = password
-        self.base_url: Region = Region.US
+        self.base_login: Region = Region.US
+        self.base_url: str | None = None
+        self.server_list: list | None = None
         self._session: ClientSession = session if session else ClientSession()
         self.tz: str = get_localzone_name()
         self.timeout: int = timeout
@@ -74,8 +77,28 @@ class PetKitClient:
         self.manually_paused: dict[int, bool] = {}
         self.manual_pause_end: dict[int, datetime | None] = {}
 
+    async def get_api_server_list(self) -> None:
+        """Fetches a list of all api urls categorized by region."""
+
+        url = 'https://passport.petkt.com/6/account/regionservers'
+
+        headers = {
+            'Accept': Header.ACCEPT,
+            'Accept-Language': Header.ACCEPT_LANG,
+            'Accept-Encoding': Header.ENCODING,
+            'X-Api-Version': Header.API_VERSION,
+            'Content-Type': Header.CONTENT_TYPE,
+            'User-Agent': Header.AGENT,
+            'X-Client': Header.CLIENT,
+        }
+        data = {}
+        response = await self._post(url, headers, data)
+        self.server_list = response['result']['list']
+
     async def login(self) -> None:
-        login_url = f'{self.base_url}{Endpoint.LOGIN}'
+
+        await self.get_api_server_list()
+        login_url = f'{self.base_login}{Endpoint.LOGIN}'
 
         headers = {
             'Accept': Header.ACCEPT,
@@ -99,6 +122,19 @@ class PetKitClient:
         self.user_id = response['result']['session']['userId']
         self.token = response['result']['session']['id']
         self.token_expiration = datetime.now() + timedelta(seconds=response['result']['session']['expiresIn'])
+        account_region = response['result']['user']['account']['region']
+        # Determine base URL based on region account is from
+        for region in self.server_list:
+            if region['id'] == account_region:
+                # Need to remove trailing forward slash
+                self.base_url = region['gateway'][:-1]
+                break
+            else:
+                # Fallback base url if region server can't be found based on account region
+                if account_region in ASIA_REGIONS:
+                    self.base_url = Region.ASIA
+                else:
+                    self.base_url = Region.US
 
     async def check_token(self) -> None:
         """Check to see if there is a valid token or if token is about to expire.
