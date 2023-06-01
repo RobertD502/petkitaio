@@ -5,7 +5,7 @@ from .str_enum import StrEnum
 class Region(StrEnum):
 
     US = 'http://api.petkt.com/latest'
-    CN = 'http://api.petkit.cn/6'
+    ASIA = 'http://api.petktasia.com/latest'
 
 
 class Endpoint(StrEnum):
@@ -160,6 +160,57 @@ CLIENT_DICT = {
     "token":"",
     "name":"iPhone14,3"
 }
+
+ASIA_REGIONS = [
+    'AF',
+    'AL',
+    'AZ',
+    'BH',
+    'BD',
+    'BT',
+    'BN',
+    'KH',
+    'CN',
+    'CY',
+    'VA',
+    'HK',
+    'IN',
+    'ID',
+    'IR',
+    'IQ',
+    'IL',
+    'JP',
+    'JO',
+    'KZ',
+    'KP',
+    'KR',
+    'KW',
+    'KG',
+    'LA',
+    'LB',
+    'LU',
+    'MO',
+    'MY',
+    'MV',
+    'MN',
+    'MM',
+    'NP',
+    'OM',
+    'PK',
+    'PH',
+    'QA',
+    'SA',
+    'SG',
+    'SY',
+    'TW',
+    'TJ',
+    'TH',
+    'TL',
+    'TM',
+    'AE',
+    'VN',
+    'YE'
+]
 
 AUTH_ERROR_CODES = {
     122: 'PetKit username/email or password is incorrect',
