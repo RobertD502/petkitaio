@@ -73,7 +73,7 @@ from petkitaio.constants import FeederSetting
 
 # Enabling child lock on a D4 feeder. Note: Mini Feeders use a different setting.
 # Reusing retrieved devices from above.
-await client.update_feeder_settings(feeder=devices.feeders[feederid], setting=FeederSetting.CHILDLOCK, value=1)
+await client.update_feeder_settings(feeder=devices.feeders[feederid], setting=FeederSetting.CHILD_LOCK, value=1)
 ```
 
 ### Reset Feeder Desiccant
