@@ -2,7 +2,7 @@
 
 Asynchronous Python library for PetKit's API.
 
-This is PetKit's undocumented API. With that said, future changes made by PetKit may break this library. All API calls are made to PetKit's USA servers.
+This is PetKit's undocumented API. With that said, future changes made by PetKit may break this library. The API endpoint used is determined based on the region your account is locked to. Although support has been added for the PetKit Asia API endpoint, I have not personally tested it.
 
 ## **Currently Supported Devices**:
 - [D3 Feeder (Fresh Element Infinity)](https://www.amazon.com/PETKIT-Automatic-Stainless-Programmable-Dispenser/dp/B09JFK8BCQ)
