@@ -127,7 +127,7 @@ class PetKitClient:
         for region in self.server_list:
             if region['id'] == account_region:
                 # Need to remove trailing forward slash
-                self.base_url = region['gateway'][:-1].replace('http', 'https')
+                self.base_url = region['gateway'][:-1]
                 break
             else:
                 # Fallback base url if region server can't be found based on account region
