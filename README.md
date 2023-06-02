@@ -2,7 +2,7 @@
 
 Asynchronous Python library for PetKit's API.
 
-This is PetKit's undocumented API. With that said, future changes made by PetKit may break this library. All API calls are made to PetKit's USA servers.
+This is PetKit's undocumented API. With that said, future changes made by PetKit may break this library. The API endpoint used is determined based on the region your account is locked to. Although support has been added for the PetKit Asia API endpoint, I have not personally tested it.
 
 ## **Currently Supported Devices**:
 - [D3 Feeder (Fresh Element Infinity)](https://www.amazon.com/PETKIT-Automatic-Stainless-Programmable-Dispenser/dp/B09JFK8BCQ)
@@ -10,6 +10,7 @@ This is PetKit's undocumented API. With that said, future changes made by PetKit
 - [Mini Feeder](https://www.amazon.com/PETKIT-Automatic-Stainless-Indicator-Dispenser-2-8L/dp/B08GS1CPHH/)
 - [W5 Water Fountain (Eversweet 3 Pro)](https://www.amazon.com/PETKIT-Wireless-Fountain-Stainless-Dispenser/dp/B09QRH6L3M/)
 - [T3 Litter Box (Pura X)](https://www.amazon.com/PETKIT-Self-Cleaning-Scooping-Automatic-Multiple/dp/B08T9CCP1M)
+- [T4 Litter Box (Pura MAX) with/without Pura Air](https://www.amazon.com/PETKIT-Self-Cleaning-Capacity-Multiple-Automatic/dp/B09KC7Q4YF)
 
 ## Important
 
@@ -72,7 +73,7 @@ from petkitaio.constants import FeederSetting
 
 # Enabling child lock on a D4 feeder. Note: Mini Feeders use a different setting.
 # Reusing retrieved devices from above.
-await client.update_feeder_settings(feeder=devices.feeders[feederid], setting=FeederSetting.CHILDLOCK, value=1)
+await client.update_feeder_settings(feeder=devices.feeders[feederid], setting=FeederSetting.CHILD_LOCK, value=1)
 ```
 
 ### Reset Feeder Desiccant
