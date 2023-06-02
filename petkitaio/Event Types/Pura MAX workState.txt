@@ -13,27 +13,30 @@ if current work process / 10 = 4 --> re-end maintenance mode and set workProcess
 // Disregard
 
 
-    if workProcess / 10 = 1:
+## workMode 9: Maintenance Mode
+
+    if workProcess / 10 == 1:
         "In maintenance mode"
-    if workProcess / 10 = 2 and workProcess % 10 = 2:
-        "Maintenance mode paused"
-        if safeWarn in workState:
-            if safeWarn !=0:
-                if safeWarn == 1:
-                    "Maintenance mode paused: Pet entered while in operation, anti-pinch sensors activated, device stopped working. Please check the device ASAP.
-                if safeWarn == 3:
-                    "Maintenance mode paused: The top cover is not installed, operation paused"
-                else:
-                    "Maintenance mode paused: System error, operation paused"
-            if safeWarn == 0:
-                if petInTime == 0:
-                    "Maintenance mode paused: Your cat is approaching, operation paused"
-                else:
-                    "Maintenance mode paused: Your cat is using the device, operation paused"
-    if workProcess / 10 = 3:
+    if round_down(workProcess / 10) == 2:
+        if workProcess % 10 == 2:
+            if safeWarn in workState:
+                if safeWarn !=0:
+                    if safeWarn == 1:
+                        "Maintenance mode paused: Pet entered while in operation, anti-pinch sensors activated, device stopped working. Please check the device ASAP.
+                    if safeWarn == 3:
+                        "Maintenance mode paused: The top cover is not installed, operation paused"
+                    else:
+                        "Maintenance mode paused: System error, operation paused"
+                if safeWarn == 0:
+                    if petInTime == 0:
+                        "Maintenance mode paused: Your cat is approaching, operation paused"
+                    else:
+                        "Maintenance mode paused: Your cat is using the device, operation paused"
+        else:
+            "Maintenance mode paused"
+    if workProcess / 10 == 3:
         "Exiting maintenance mode"
-    if workProcess / 10 == 4:
-        "Maintenance mode exiting paused"
+    if rounded_down(workProcess / 10) == 4:
         if workProcess % 10 == 2:
             if safeWarn in workState:
                 if safeWarn !=0:
@@ -48,14 +51,16 @@ if current work process / 10 = 4 --> re-end maintenance mode and set workProcess
                         "Maintenance mode exiting paused: Your cat is approaching, operation paused"
                     else:
                         "Maintenance mode exiting paused: Your cat is using the device, operation paused"
+        else:
+            "Maintenance mode exiting paused"
+            
 
 
 ## workMode 0: Start Cleaning
 
-if workProcess / 10 = 1:
+if workProcess / 10 == 1:
     "Cleaning litter box"
-if workProcess / 10 = 2:
-    "Litter box cleaning paused"
+if rounded_down(workProcess / 10) == 2:
     if workProcess % 10 = 2:
         if safeWarn in workState:
             if safeWarn !=0:
@@ -68,11 +73,12 @@ if workProcess / 10 = 2:
                     "Litter box cleaning paused: Your cat is approaching, operation paused"
                 else:
                     "Litter box cleaning paused: Your cat is using the device, operation paused"
-    if workProcess % 10 = 3:
-        "Resetting device"
-    if workProcess % 10 = 4:
-        "Litter box paused"
-        if workProcess % 10 = 2:
+    else:
+        "Litter box cleaning paused"
+if workProcess / 10 == 3:
+    "Resetting device"
+if rounded_down(workProcess / 10) == 4:
+        if workProcess % 10 == 2:
             if safeWarn in workState:
                 if safeWarn != 0:
                     if safeWarn == 1:
@@ -84,15 +90,17 @@ if workProcess / 10 = 2:
                         "Litter box paused: Your cat is approaching, operation paused"
                     else:
                         "Litter box paused: Your cat is using the device, operation paused"
+        else:
+            "Litter box paused"
+
 
 
 ## workMode 1: Dump Cat litter
 
-if workProcess / 10 = 1:
+if workProcess / 10 == 1:
     "Dumping cat litter"
-if workProcess / 10 = 2:
-    "Dumping cat litter paused"
-    if workProcess % 10 = 2:
+if rounded_down(workProcess / 10) == 2:
+    if workProcess % 10 == 2:
         if safeWarn in workState:
             if safeWarn !=0:
                 if safeWarn == 1:
@@ -104,22 +112,27 @@ if workProcess / 10 = 2:
                     "Dumping cat litter paused: Your cat is approaching, operation paused"
                 else:
                     "Dumping cat litter paused: Your cat is using the device, operation paused"
-    if workProcess % 10 = 3:
-        "Resetting device"
-    if workProcess % 10 = 4:
-        "Litter box paused"
-        if workProcess % 10 = 2:
-            if safeWarn in workState:
-                if safeWarn != 0:
-                    if safeWarn == 1:
-                        "Litter box paused: Pet entered while in operation, anti-pinch sensors activated, device stopped working. Please check the device ASAP."
-                    else:
-                        "Litter box paused: System error, operation paused"
+    else:
+        "Dumping cat litter paused"
+if workProcess % 10 = 3:
+    "Resetting device"
+if rounded_down(workProcess / 10) == 4:
+    if workProcess % 10 = 2:
+        if safeWarn in workState:
+            if safeWarn != 0:
+                if safeWarn == 1:
+                    "Litter box paused: Pet entered while in operation, anti-pinch sensors activated, device stopped working. Please check the device ASAP."
+                else:
+                    "Litter box paused: System error, operation paused"
                 if safeWarn == 0:
                     if petInTime == 0:
                         "Litter box paused: Your cat is approaching, operation paused"
                     else:
                         "Litter box paused: Your cat is using the device, operation paused"
+    else:
+        "Litter box paused"
+        
+ 
 
 ## workMode 3: Dump Cat litter
     "Resetting"
@@ -127,6 +140,7 @@ if workProcess / 10 = 2:
 
 ## workMode 4: Leveling cat litter
     "Leveling cat litter, please wait."
+
 
 ## workMode 5: Calibrating
 
