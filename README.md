@@ -7,7 +7,9 @@ This is PetKit's undocumented API. With that said, future changes made by PetKit
 ## **Currently Supported Devices**:
 - [D3 Feeder (Fresh Element Infinity)](https://www.amazon.com/PETKIT-Automatic-Stainless-Programmable-Dispenser/dp/B09JFK8BCQ)
 - [D4 Feeder (Fresh Element Solo)](https://www.amazon.com/PETKIT-Automatic-Dispenser-Compatible-Freeze-Dried/dp/B09158J9PF/)
+- [D4s Feeder (Fresh Element Gemini)](https://www.amazon.com/PETKIT-Automatic-Combination-Dispenser-Stainless/dp/B0BF56RTQH)
 - [Mini Feeder](https://www.amazon.com/PETKIT-Automatic-Stainless-Indicator-Dispenser-2-8L/dp/B08GS1CPHH/)
+- [W5 Water Fountain (Eversweet Solo 2)](https://www.amazon.com/PETKIT-EVERSWEET-Wireless-Visualization-Dispenser-2L/dp/B0B3RWF653)
 - [W5 Water Fountain (Eversweet 3 Pro)](https://www.amazon.com/PETKIT-Wireless-Fountain-Stainless-Dispenser/dp/B09QRH6L3M/)
 - [W5 Water Fountain (Eversweet 5 Mini)](https://www.petkit.nl/products/eversweet-5-mini-binnen-2-weken-geleverd)
 - [T3 Litter Box (Pura X)](https://www.amazon.com/PETKIT-Self-Cleaning-Scooping-Automatic-Multiple/dp/B08T9CCP1M)
