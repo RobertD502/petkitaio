@@ -76,6 +76,7 @@ class PetKitClient:
         self.ble_sequence: int = 0
         self.manually_paused: dict[int, bool] = {}
         self.manual_pause_end: dict[int, datetime | None] = {}
+        self.last_manual_feed_id: dict[int, str | None] = {}
 
     async def get_api_server_list(self) -> None:
         """Fetches a list of all api urls categorized by region."""
@@ -203,16 +204,14 @@ class PetKitClient:
                 if device['type'] in WATER_FOUNTAIN_LIST:
                     device_type: str = device['type'].lower()
                     fountain_data: dict[str, Any] = {}
-                    relay_tc: int | None = None
+                    relay_tc: int = 14
                     wf_url = f'{self.base_url}{Endpoint.W5}'
                     data = {
                         'id': device['data']['id']
                     }
 
                     if self.has_relay:
-                        ble_available: bool = False
                         main_online: bool = False
-                        fountain_tcode = str(device['data']['typeCode'])
                         ble_url = f'{self.base_url}{Endpoint.BLE_DEVICES}'
                         relay_devices = await self._post(ble_url, header, data={})
                         if relay_devices['result']:
@@ -227,13 +226,11 @@ class PetKitClient:
                             if ble_available and main_online:
                                 device_details = await self._post(wf_url, header, data)
                                 mac = device_details['result']['mac']
-                                type_code = int(f'1{fountain_tcode}')
-                                relay_tc = type_code
                                 conn_url = f'{self.base_url}{Endpoint.BLE_CONNECT}'
                                 ble_data = {
                                     'bleId': device_details['result']['id'],
                                     'mac': mac,
-                                    'type': type_code
+                                    'type': relay_tc
                                 }
                                 conn_resp = await self._post(conn_url, header, ble_data)
                                 # Check to see if BLE connection was successful
@@ -285,6 +282,12 @@ class PetKitClient:
                     }
                     feeder_data = await self._post(feeder_url, header, data)
 
+                    # Populate the last manual feeding ID for the Gemini(d4s) feeder if it exists
+                    if feeder_data['result']['id'] in self.last_manual_feed_id:
+                        last_manual_feed_id = self.last_manual_feed_id[feeder_data['result']['id']]
+                    else:
+                        last_manual_feed_id = None
+
                     if device['type'] == 'D3':
                         sound_list[-1] = 'Default'
                         sound_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.SOUND_LIST}'
@@ -300,7 +303,8 @@ class PetKitClient:
                         id=feeder_data['result']['id'],
                         data=feeder_data['result'],
                         type=device['type'].lower(),
-                        sound_list=sound_list
+                        sound_list=sound_list,
+                        last_manual_feed_id=last_manual_feed_id
                     )
 
                 # Litter Boxes
@@ -607,8 +611,6 @@ class PetKitClient:
                     ble_data = await self.create_ble_data(command, water_fountain)
             # Handle all other commands
             else:
-                # Also send current light brightness in case command is to turn indicator light on/off
-#                light_brightness = water_fountain.data['settings']['lampRingBrightness']
                 ble_data = await self.create_ble_data(command, water_fountain)
             header = await self.create_header()
             conn_data = {
@@ -634,7 +636,7 @@ class PetKitClient:
             # Ensure BLE connection is made before sending command
             await asyncio.sleep(2)
             # Send command to water fountain via BLE relay
-            send_command = await self._post(command_url, header, command_data)
+            await self._post(command_url, header, command_data)
             # Reset ble_sequence
             self.ble_sequence = 0
 
@@ -718,7 +720,7 @@ class PetKitClient:
                 self.manual_pause_end[litter_box.id] = datetime.now() + timedelta(seconds=660)
 
     async def check_manual_pause_expiration(self, id: int):
-        """Check to see if manual pause has expired and litter box resumed the cleanin on its own."""
+        """Check to see if manual pause has expired and litter box resumed the cleaning on its own."""
 
         current_dt = datetime.now()
         current_end = self.manual_pause_end[id]
@@ -744,6 +746,30 @@ class PetKitClient:
             'time': '-1'
         }
         await self._post(url, header, data)
+
+    async def dual_hopper_manual_feeding(self, feeder: Feeder, amount1: int = 0, amount2: int = 0) -> None:
+        """Dispense food manually for dual hopper Gemini feeder.
+        Allowed amount for each side ranges from 0 to 10 portions.
+        """
+
+        invalid_amount1 = (amount1 < 0) or (amount1 > 10)
+        invalid_amount2 = (amount2 < 0) or (amount2 > 10)
+        if invalid_amount1 or invalid_amount2:
+            raise PetKitError('Invalid portion amount specified. Each hopper can only take a portion value between/including 0 to 10')
+        else:
+            url = f'{self.base_url}/{feeder.type}{Endpoint.MANUAL_FEED}'
+            header = await self.create_header()
+            data = {
+                'amount1': amount1,
+                'amount2': amount2,
+                'day': str(datetime.now().date()).replace('-', ''),
+                'deviceId': feeder.id,
+                'name': '',
+                'time': '-1'
+            }
+            response = await self._post(url, header, data)
+            feeder.last_manual_feed_id = response['result']['id']
+            self.last_manual_feed_id[feeder.id] = response['result']['id']
 
     async def update_feeder_settings(self, feeder: Feeder, setting: FeederSetting, value: int) -> None:
         """Change the setting on a feeder."""
@@ -796,10 +822,23 @@ class PetKitClient:
 
         url = f'{self.base_url}/{feeder.type}{Endpoint.CANCEL_FEED}'
         header = await self.create_header()
-        data = {
-            'day': str(datetime.now().date()).replace('-', ''),
-            'deviceId': feeder.id
-        }
+        if feeder.type == 'd4s':
+            if feeder.last_manual_feed_id is None:
+                raise PetKitError('Unable to cancel manual feeding. No valid last manual feeding ID found.')
+            else:
+                data = {
+                    'day': str(datetime.now().date()).replace('-', ''),
+                    'deviceId': feeder.id,
+                    'id': feeder.last_manual_feed_id
+                }
+                self.last_manual_feed_id[feeder.id] = None
+                # Reset the last manual feed id attribute
+                feeder.last_manual_feed_id = None
+        else:
+            data = {
+                'day': str(datetime.now().date()).replace('-', ''),
+                'deviceId': feeder.id
+            }
         await self._post(url, header, data)
 
     async def reset_feeder_desiccant(self, feeder: Feeder) -> None:
@@ -826,3 +865,21 @@ class PetKitClient:
             'deviceId': litter_box.id
         }
         await self._post(url, header, data)
+
+    async def food_replenished(self, feeder: Feeder) -> None:
+        """Tell PetKit servers that food in the feeder has been replenished.
+        Currently only used for the D4s (Gemini) feeder.
+        If you don't send this command after adding food to the feeder containers,
+        the food state (empty/not empty) won't change until the next scheduled or manual feeding.
+        """
+
+        if feeder.type != 'd4s':
+            raise PetKitError('The food_replenished method is only used with D4s (Gemini) feeders.')
+        else:
+            url = f'{self.base_url}/{feeder.type}{Endpoint.REPLENISHED_FOOD}'
+            header = await self.create_header()
+            data = {
+                'deviceId': feeder.id,
+                'noRemind': 3
+            }
+            await self._post(url, header, data)
