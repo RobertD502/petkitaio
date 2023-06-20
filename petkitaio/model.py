@@ -23,6 +23,7 @@ class Feeder:
     data: dict[str, Any]
     type: str
     sound_list: Optional[dict[int, str]] = None
+    last_manual_feed_id: Optional[str] = None
 
 @dataclass
 class LitterBox:
@@ -34,7 +35,7 @@ class LitterBox:
     statistics: dict[str, Any]
     type: str
     manually_paused: bool
-    manual_pause_end: datetime | None
+    manual_pause_end: Optional[datetime] = None
 
 @dataclass
 class W5Fountain:
