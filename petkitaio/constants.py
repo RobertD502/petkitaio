@@ -131,6 +131,29 @@ class PetSetting(StrEnum):
 
     WEIGHT = 'weight'
 
+class PurifierSetting(StrEnum):
+
+    LIGHT = 'lightMode'
+    SOUND = 'sound'
+
+class PurifierCommand(StrEnum):
+
+    POWER = 'power'
+    AUTO_MODE = 'auto_mode'
+    SILENT_MODE = 'silent_mode'
+    STANDARD_MODE = 'standard_mode'
+    STRONG_MODE = 'strong_mode'
+
+class PurifierCommandKey(StrEnum):
+
+    POWER = 'power_action'
+    MODE = 'mode_action'
+
+class PurifierCommandType(StrEnum):
+
+    POWER = 'power'
+    MODE = 'mode'
+
 class W5Command(StrEnum):
 
     PAUSE = 'Pause'
@@ -231,6 +254,7 @@ SERVER_ERROR_CODES = {
 BLE_HEADER = [-6, -4, -3]
 FEEDER_LIST = ['D3', 'D4', 'D4s', 'FeederMini']
 LITTER_LIST = ['T3', 'T4']
+PURIFIER_LIST = ['K2']
 WATER_FOUNTAIN_LIST = ['W5']
 
 LB_CMD_TO_KEY = {
@@ -284,6 +308,29 @@ LB_CMD_TO_VALUE = {
     LitterBoxCommand.PAUSE_LITTER_DUMP: 1,
     LitterBoxCommand.RESUME_LITTER_DUMP: 1,
     LitterBoxCommand.RESET_MAX_DEODOR: 8,
+}
+
+PUR_CMD_TO_KEY = {
+    PurifierCommand.POWER: PurifierCommandKey.POWER,
+    PurifierCommand.AUTO_MODE: PurifierCommandKey.MODE,
+    PurifierCommand.SILENT_MODE: PurifierCommandKey.MODE,
+    PurifierCommand.STANDARD_MODE: PurifierCommandKey.MODE,
+    PurifierCommand.STRONG_MODE: PurifierCommandKey.MODE
+}
+
+PUR_CMD_TO_TYPE = {
+    PurifierCommand.POWER: PurifierCommandType.POWER,
+    PurifierCommand.AUTO_MODE: PurifierCommandType.MODE,
+    PurifierCommand.SILENT_MODE: PurifierCommandType.MODE,
+    PurifierCommand.STANDARD_MODE: PurifierCommandType.MODE,
+    PurifierCommand.STRONG_MODE: PurifierCommandType.MODE
+}
+
+PUR_CMD_TO_VALUE = {
+    PurifierCommand.AUTO_MODE: 0,
+    PurifierCommand.SILENT_MODE: 1,
+    PurifierCommand.STANDARD_MODE: 2,
+    PurifierCommand.STRONG_MODE: 3
 }
 
 W5_COMMAND_TO_CODE = {
