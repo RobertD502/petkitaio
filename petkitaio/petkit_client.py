@@ -31,6 +31,12 @@ from petkitaio.constants import (
     LitterBoxSetting,
     LITTER_LIST,
     PetSetting,
+    PurifierCommand,
+    PUR_CMD_TO_KEY,
+    PUR_CMD_TO_TYPE,
+    PUR_CMD_TO_VALUE,
+    PURIFIER_LIST,
+    PurifierSetting,
     Region,
     SERVER_ERROR_CODES,
     TIMEOUT,
@@ -43,7 +49,7 @@ from petkitaio.constants import (
     W5_SETTINGS_COMMANDS,
 )
 from petkitaio.exceptions import (AuthError, BluetoothError, PetKitError, ServerError)
-from petkitaio.model import (Feeder, LitterBox, Pet, PetKitData, W5Fountain)
+from petkitaio.model import (Feeder, LitterBox, Pet, PetKitData, Purifier, W5Fountain)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -195,6 +201,7 @@ class PetKitClient:
         feeders_data: dict[int, Feeder] = {}
         litter_boxes_data: dict[int, LitterBox] = {}
         pets_data: dict[int, Pet] = {}
+        purifiers_data: dict[int, Purifier] = {}
 
         devices = device_roster['result']['devices']
         LOGGER.debug(f'Found the following PetKit devices: {devices}')
@@ -365,6 +372,23 @@ class PetKitClient:
                         manually_paused=manually_paused,
                         manual_pause_end=manual_pause_end,
                     )
+
+                # Purifiers
+                if device['type'] in PURIFIER_LIST:
+                    ### Fetch device_detail page
+                    dd_url = f'{self.base_url}/{device["type"].lower()}{Endpoint.DEVICE_DETAIL}'
+                    dd_data = {
+                        'id': device['data']['id']
+                    }
+                    device_detail = await self._post(dd_url, header, dd_data)
+
+                    ### Create Purifier Object ###
+                    purifiers_data[device_detail['result']['id']] = Purifier(
+                        id=device_detail['result']['id'],
+                        device_detail=device_detail['result'],
+                        type=device['type'].lower(),
+                    )
+
         ### Get user details page
         details_url = f'{self.base_url}{Endpoint.USER_DETAILS}'
         details_data = {
@@ -381,7 +405,7 @@ class PetKitClient:
                     type=pet['type']['name']
                 )
 
-        return PetKitData(user_id=self.user_id, feeders=feeders_data, litter_boxes=litter_boxes_data, water_fountains=fountains_data, pets=pets_data)
+        return PetKitData(user_id=self.user_id, feeders=feeders_data, litter_boxes=litter_boxes_data, water_fountains=fountains_data, pets=pets_data, purifiers=purifiers_data)
 
 
     async def _post(self, url: str, headers: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:
@@ -719,6 +743,31 @@ class PetKitClient:
                 ## The manual pause will end after a 10-minute wait + 1 minute to complete cleaning
                 self.manual_pause_end[litter_box.id] = datetime.now() + timedelta(seconds=660)
 
+    async def control_purifier(self, purifier: Purifier, command: PurifierCommand) -> None:
+        """Control PetKit purifiers."""
+
+        url = f'{self.base_url}/{purifier.type}{Endpoint.CONTROL_DEVICE}'
+        value: int = 0
+        if command == PurifierCommand.POWER:
+            # Power of 1 means it is on. Power of 2 means it is on and in standby mode
+            if purifier.device_detail['state']['power'] in [1, 2]:
+                value = 0
+            else:
+                value = 1
+        else:
+            value = PUR_CMD_TO_VALUE[command]
+        key = PUR_CMD_TO_KEY[command]
+        header = await self.create_header()
+        command_dict = {
+            key: value
+        }
+        data = {
+            'id': purifier.id,
+            'kv': json.dumps(command_dict),
+            'type': PUR_CMD_TO_TYPE[command]
+        }
+        await self._post(url, header, data)
+
     async def check_manual_pause_expiration(self, id: int):
         """Check to see if manual pause has expired and litter box resumed the cleaning on its own."""
 
@@ -813,6 +862,20 @@ class PetKitClient:
         }
         data = {
             'petId': int(pet.id),
+            'kv': json.dumps(setting_dict)
+        }
+        await self._post(url, header, data)
+
+    async def update_purifier_settings(self, purifier: Purifier, setting: PurifierSetting, value: int) -> None:
+        """Change the setting on a purifier."""
+
+        url = f'{self.base_url}/{purifier.type}{Endpoint.UPDATE_SETTING}'
+        header = await self.create_header()
+        setting_dict = {
+            setting: value
+        }
+        data = {
+            'id': purifier.id,
             'kv': json.dumps(setting_dict)
         }
         await self._post(url, header, data)
