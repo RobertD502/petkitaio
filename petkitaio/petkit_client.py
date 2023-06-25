@@ -181,7 +181,7 @@ class PetKitClient:
         """Fetch device roster endpoint to get all available devices."""
 
         await self.check_token()
-        url = f'{self.base_url}{Endpoint.NOTIFICATIONS}'
+        url = f'{self.base_url}{Endpoint.DEVICE_ROSTER}'
         header = await self.create_header()
         data = {
             'day': str(datetime.now().date()).replace('-', ''),
@@ -193,7 +193,7 @@ class PetKitClient:
         """Fetch user notifications endpoint to get all available notifications."""
 
         await self.check_token()
-        url = f'{self.base_url}{Endpoint.DEVICE_ROSTER}'
+        url = f'{self.base_url}{Endpoint.NOTIFICATIONS}'
         header = await self.create_header()
         data = {
             'type': NOTIFICATIONS_TYPE[4],
