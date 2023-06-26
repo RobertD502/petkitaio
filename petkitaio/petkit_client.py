@@ -15,7 +15,6 @@ import hashlib
 from tzlocal import get_localzone_name
 
 from petkitaio.constants import (
-    ASIA_REGIONS,
     AUTH_ERROR_CODES,
     BLE_HEADER,
     BLUETOOTH_ERRORS,
@@ -58,7 +57,7 @@ class PetKitClient:
     """PetKit client."""
 
     def __init__(
-        self, username: str, password: str, session: ClientSession | None = None, timeout: int = TIMEOUT
+        self, username: str, password: str, session: ClientSession | None = None, asia_account: bool = False, timeout: int = TIMEOUT
     ) -> None:
         """Initialize PetKit Client.
 
@@ -69,8 +68,7 @@ class PetKitClient:
 
         self.username: str = username
         self.password: str = password
-        self.base_login: Region = Region.US
-        self.base_url: str | None = None
+        self.base_url: Region = Region.ASIA if asia_account else Region.US
         self.server_list: list | None = None
         self._session: ClientSession = session if session else ClientSession()
         self.tz: str = get_localzone_name()
@@ -104,8 +102,7 @@ class PetKitClient:
 
     async def login(self) -> None:
 
-        await self.get_api_server_list()
-        login_url = f'{self.base_login}{Endpoint.LOGIN}'
+        login_url = f'{self.base_url}{Endpoint.LOGIN}'
 
         headers = {
             'Accept': Header.ACCEPT,
@@ -129,19 +126,6 @@ class PetKitClient:
         self.user_id = response['result']['session']['userId']
         self.token = response['result']['session']['id']
         self.token_expiration = datetime.now() + timedelta(seconds=response['result']['session']['expiresIn'])
-        account_region = response['result']['user']['account']['region']
-        # Determine base URL based on region account is from
-        for region in self.server_list:
-            if region['id'] == account_region:
-                # Need to remove trailing forward slash
-                self.base_url = region['gateway'][:-1]
-                break
-            else:
-                # Fallback base url if region server can't be found based on account region
-                if account_region in ASIA_REGIONS:
-                    self.base_url = Region.ASIA
-                else:
-                    self.base_url = Region.US
 
     async def check_token(self) -> None:
         """Check to see if there is a valid token or if token is about to expire.
