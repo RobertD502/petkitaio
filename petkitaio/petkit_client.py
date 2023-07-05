@@ -20,6 +20,7 @@ from petkitaio.constants import (
     BLUETOOTH_ERRORS,
     CLIENT_DICT,
     Endpoint,
+    FeederCommand,
     FEEDER_LIST,
     FeederSetting,
     Header,
@@ -769,6 +770,8 @@ class PetKitClient:
 
         if feeder.type == 'feedermini':
             url = f'{self.base_url}{Endpoint.MINI_MANUAL_FEED}'
+        elif feeder.type == 'feeder':
+            url = f'{self.base_url}{Endpoint.FRESH_ELEMENT_MANUAL_FEED}'
         else:
             url = f'{self.base_url}/{feeder.type}{Endpoint.MANUAL_FEED}'
         header = await self.create_header()
@@ -809,6 +812,9 @@ class PetKitClient:
 
         if feeder.type == 'feedermini':
             url = f'{self.base_url}{Endpoint.MINI_SETTING}'
+        # Fresh Element Feeder
+        elif feeder.type == 'feeder':
+            url = f'{self.base_url}{Endpoint.FRESH_ELEMENT_SETTING}'
         # D3 and D4 Feeders
         else:
             url = f'{self.base_url}/{feeder.type}{Endpoint.UPDATE_SETTING}'
@@ -867,7 +873,11 @@ class PetKitClient:
     async def cancel_manual_feed(self, feeder: Feeder) -> None:
         """Cancel a manual feed that is currently in progress. Not available for mini feeders"""
 
-        url = f'{self.base_url}/{feeder.type}{Endpoint.CANCEL_FEED}'
+        # Fresh Element feeder
+        if feeder.type == 'feeder':
+            url = f'{self.base_url}/{feeder.type}{Endpoint.FRESH_ELEMENT_CANCEL_FEED}'
+        else:
+            url = f'{self.base_url}/{feeder.type}{Endpoint.CANCEL_FEED}'
         header = await self.create_header()
         if feeder.type == 'd4s':
             if feeder.last_manual_feed_id is None:
@@ -893,6 +903,9 @@ class PetKitClient:
 
         if feeder.type == 'feedermini':
             url = f'{self.base_url}{Endpoint.MINI_DESICCANT_RESET}'
+        # Fresh Element Feeder
+        elif feeder.type == 'feeder':
+            url = f'{self.base_url}{Endpoint.FRESH_ELEMENT_DESICCANT_RESET}'
         else:
             url = f'{self.base_url}/{feeder.type}{Endpoint.FEEDER_DESICCANT_RESET}'
         header = await self.create_header()
@@ -928,5 +941,25 @@ class PetKitClient:
             data = {
                 'deviceId': feeder.id,
                 'noRemind': 3
+            }
+            await self._post(url, header, data)
+
+    async def fresh_element_calibration(self, feeder: Feeder, command: FeederCommand) -> None:
+        """Start/stop calibration command to Fresh Element feeder.
+        This needs to be done whenever batteries are added or removed.
+        """
+
+        if feeder.type != 'feeder':
+            raise PetKitError('Calibration is only used for Fresh Element feeders.')
+        else:
+            url = f'{self.base_url}/{feeder.type}{Endpoint.FRESH_ELEMENT_CALIBRATION}'
+            header = await self.create_header()
+            if command == FeederCommand.START_CALIBRATION:
+                value = 1
+            else:
+                value = 0
+            data = {
+                'action': value,
+                'deviceId': feeder.id
             }
             await self._post(url, header, data)
