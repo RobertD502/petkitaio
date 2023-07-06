@@ -22,6 +22,11 @@ class Endpoint(StrEnum):
     DEVICE_RECORD = '/getDeviceRecord'
     DEVICE_ROSTER = '/discovery/device_roster'
     FEEDER_DESICCANT_RESET = '/desiccantReset'
+    FRESH_ELEMENT_CALIBRATION = '/food_reset'
+    FRESH_ELEMENT_CANCEL_FEED = '/cancel_realtime_feed'
+    FRESH_ELEMENT_DESICCANT_RESET = '/feeder/desiccant_reset'
+    FRESH_ELEMENT_MANUAL_FEED = '/feeder/save_dailyfeed'
+    FRESH_ELEMENT_SETTING = '/feeder/update'
     LOGIN = '/user/login'
     MANUAL_FEED = '/saveDailyFeed'
     MAX_ODOR_RESET = '/deodorantReset'
@@ -44,6 +49,8 @@ class FeederSetting(StrEnum):
     DISPENSE_TONE = 'feedSound'
     DO_NOT_DISTURB = 'disturbMode'
     FEED_TONE = 'feedTone'
+    FRESH_ELEMENT_CHILD_LOCK = 'settings.manualLock'
+    FRESH_ELEMENT_INDICATOR_LIGHT = 'settings.lightMode'
     INDICATOR_LIGHT = 'lightMode'
     MIN_EAT_DURATION = 'shortest'
     MINI_CHILD_LOCK = 'settings.manualLock'
@@ -70,6 +77,11 @@ class Header(StrEnum):
     CLIENT = 'ios(15.1;iPhone14,3)'
     LOCALE = 'en_US'
 
+
+class FeederCommand(StrEnum):
+
+    START_CALIBRATION = 'Start calibration'
+    STOP_CALIBRATION = 'Stop calibration'
 
 class LitterBoxCommand(StrEnum):
 
@@ -252,7 +264,7 @@ SERVER_ERROR_CODES = {
 }
 
 BLE_HEADER = [-6, -4, -3]
-FEEDER_LIST = ['D3', 'D4', 'D4s', 'FeederMini']
+FEEDER_LIST = ['D3', 'D4', 'D4s', 'Feeder', 'FeederMini']
 LITTER_LIST = ['T3', 'T4']
 PURIFIER_LIST = ['K2']
 WATER_FOUNTAIN_LIST = ['W5']

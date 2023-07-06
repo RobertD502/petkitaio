@@ -3,6 +3,7 @@ from .constants import (
     BLE_HEADER,
     BLUETOOTH_ERRORS,
     CLIENT_DICT,
+    FeederCommand,
     FEEDER_LIST,
     FeederSetting,
     LB_CMD_TO_KEY,
@@ -41,7 +42,7 @@ from .exceptions import (AuthError, BluetoothError, PetKitError, ServerError)
 from .model import (Feeder, LitterBox, Pet, PetKitData, Purifier, W5Fountain, )
 from .str_enum import StrEnum
 
-__all__ = ['AuthError', 'AUTH_ERROR_CODES', 'BLE_HEADER', 'BluetoothError', 'BLUETOOTH_ERRORS', 'CLIENT_DICT', 'Feeder', 'Endpoint',
+__all__ = ['AuthError', 'AUTH_ERROR_CODES', 'BLE_HEADER', 'BluetoothError', 'BLUETOOTH_ERRORS', 'CLIENT_DICT', 'Feeder', 'Endpoint', 'FeederCommand',
            'FEEDER_LIST', 'FeederSetting', 'Header', 'LB_CMD_TO_KEY', 'LB_CMD_TO_TYPE', 'LB_CMD_TO_VALUE', 'LitterBox', 'LitterBoxCommand', 'LitterBoxCommandKey',
            'LitterBoxCommandType', 'LitterBoxSetting', 'LITTER_LIST', 'LOGGER', 'Pet', 'PetKitClient', 'PetKitData', 'PetKitError', 'PetSetting', 'Purifier',
            'PurifierCommand', 'PurifierCommandKey', 'PurifierCommandType', 'PUR_CMD_TO_KEY', 'PUR_CMD_TO_TYPE', 'PUR_CMD_TO_VALUE', 'PURIFIER_LIST', 'PurifierSetting', 'Region',
