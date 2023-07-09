@@ -261,6 +261,7 @@ BLUETOOTH_ERRORS = {
 
 SERVER_ERROR_CODES = {
     1: 'PetKit servers are busy. Please try again later.',
+    99: 'PetKit servers are undergoing maintenance. Please try again later.'
 }
 
 BLE_HEADER = [-6, -4, -3]
