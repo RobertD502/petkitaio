@@ -403,9 +403,9 @@ class PetKitClient:
     async def _response(resp: ClientResponse) -> dict[str, Any]:
         """Return response from API call."""
 
-        if resp.status != 200:
-            error = await resp.text()
-            raise PetKitError(f'PetKit API error: {error}')
+#        if resp.status != 200:
+#            error = await resp.text()
+#            raise PetKitError(f'PetKit API Error Encountered. Status: {resp.status}; Error: {error}')
         try:
             response: dict[str, Any] = await resp.json()
         except Exception as error:
