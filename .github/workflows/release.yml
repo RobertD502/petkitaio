@@ -1,0 +1,28 @@
+name: "Release"
+
+on:
+  release:
+    types: [published, edited]
+
+permissions: {}
+
+jobs:
+  release:
+    name: "Release"
+    runs-on: "ubuntu-latest"
+    permissions:
+      contents: write
+    steps:
+      - name: "Checkout the repository"
+        uses: "actions/checkout@v3.5.3"
+
+      - name: "ZIP the library"
+        shell: "bash"
+        run: |
+          cd "${{ github.workspace }}"
+          zip petkitaio.zip -r ./
+
+      - name: "Upload the ZIP file to the release"
+        uses: softprops/action-gh-release@v0.1.15
+        with:
+          files: ${{ github.workspace }}/petkitaio.zip
