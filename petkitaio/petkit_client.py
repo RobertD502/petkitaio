@@ -48,7 +48,7 @@ from petkitaio.constants import (
     W5_LIGHT_POWER,
     W5_SETTINGS_COMMANDS,
 )
-from petkitaio.exceptions import (AuthError, BluetoothError, PetKitError, ServerError)
+from petkitaio.exceptions import (AccountTypeError, AuthError, BluetoothError, PetKitError, ServerError)
 from petkitaio.model import (Feeder, LitterBox, Pet, PetKitData, Purifier, W5Fountain)
 
 LOGGER = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ class PetKitClient:
 
         # Catch if a user is trying to set both asia and china account to true
         if asia_account and china_account:
-            raise PetKitError('Only one of asia_account or china_account may be set to True. Not both.')
+            raise AccountTypeError('Only one region (Asia or China) may be set to True. Not both.')
 
         self.username: str = username
         self.password: str = password
