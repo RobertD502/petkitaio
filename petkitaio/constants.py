@@ -6,6 +6,7 @@ class Region(StrEnum):
 
     US = 'http://api.petkt.com/latest'
     ASIA = 'http://api.petktasia.com/latest'
+    CN = 'http://api.petkit.cn/6'
 
 
 class Endpoint(StrEnum):

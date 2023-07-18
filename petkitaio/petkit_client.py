@@ -48,7 +48,7 @@ from petkitaio.constants import (
     W5_LIGHT_POWER,
     W5_SETTINGS_COMMANDS,
 )
-from petkitaio.exceptions import (AuthError, BluetoothError, PetKitError, ServerError)
+from petkitaio.exceptions import (AccountTypeError, AuthError, BluetoothError, PetKitError, ServerError)
 from petkitaio.model import (Feeder, LitterBox, Pet, PetKitData, Purifier, W5Fountain)
 
 LOGGER = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class PetKitClient:
     """PetKit client."""
 
     def __init__(
-        self, username: str, password: str, session: ClientSession | None = None, asia_account: bool = False, timeout: int = TIMEOUT
+        self, username: str, password: str, session: ClientSession | None = None, asia_account: bool = False, china_account: bool = False, timeout: int = TIMEOUT
     ) -> None:
         """Initialize PetKit Client.
 
@@ -67,9 +67,13 @@ class PetKitClient:
         session: aiohttp.ClientSession or None to create a new session
         """
 
+        # Catch if a user is trying to set both asia and china account to true
+        if asia_account and china_account:
+            raise AccountTypeError('Only one region (Asia or China) may be set to True. Not both.')
+
         self.username: str = username
         self.password: str = password
-        self.base_url: Region = Region.ASIA if asia_account else Region.US
+        self.base_url: Region = Region.ASIA if asia_account else Region.CN if china_account else Region.US
         self.server_list: list | None = None
         self._session: ClientSession = session if session else ClientSession()
         self.tz: str = get_localzone_name()

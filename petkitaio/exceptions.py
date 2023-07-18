@@ -11,6 +11,13 @@ class PetKitError(Exception):
         Exception.__init__(self, *args)
 
 
+class AccountTypeError(Exception):
+    """User has set account region to more than one region."""
+
+    def __init__(self, *args: Any) -> None:
+        """Initialize the exception."""
+        Exception.__init__(self, *args)
+
 class AuthError(Exception):
     """Authentication issue from PetKit api."""
 
