@@ -58,7 +58,7 @@ class PetKitClient:
     """PetKit client."""
 
     def __init__(
-        self, username: str, password: str, session: ClientSession | None = None, asia_account: bool = False, timeout: int = TIMEOUT
+        self, username: str, password: str, session: ClientSession | None = None, asia_account: bool = False, china_account: bool = False, timeout: int = TIMEOUT
     ) -> None:
         """Initialize PetKit Client.
 
@@ -69,7 +69,7 @@ class PetKitClient:
 
         self.username: str = username
         self.password: str = password
-        self.base_url: Region = Region.ASIA if asia_account else Region.US
+        self.base_url: Region = Region.ASIA if asia_account else Region.CN if china_account else Region.US
         self.server_list: list | None = None
         self._session: ClientSession = session if session else ClientSession()
         self.tz: str = get_localzone_name()
@@ -82,6 +82,10 @@ class PetKitClient:
         self.manually_paused: dict[int, bool] = {}
         self.manual_pause_end: dict[int, datetime | None] = {}
         self.last_manual_feed_id: dict[int, str | None] = {}
+
+        # Catch if a user is trying to set both asia and china account to true
+        if asia_account and china_account:
+            raise PetKitError('Only one of asia_account or china_account may be set to True. Not both.')
 
     async def get_api_server_list(self) -> None:
         """Fetches a list of all api urls categorized by region."""
