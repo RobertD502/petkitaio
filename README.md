@@ -2,7 +2,7 @@
 
 Asynchronous Python library for PetKit's API.
 
-This is PetKit's undocumented API. With that said, future changes made by PetKit may break this library. The API endpoint used is determined based on the region your account is locked to. In order to use this library with PetKit Asia accounts, be sure to set the asia_account parameter to `True`.
+This is PetKit's undocumented API. With that said, future changes made by PetKit may break this library. The API endpoint used is determined based on the region your account is locked to. In order to use this library with PetKit Asia accounts, be sure to set the asia_account parameter to `True`. In order to use this library with PetKit China accounts, be sure to set the china_account parameter to `True`.
 
 ## **Currently Supported Devices**:
 
@@ -47,6 +47,7 @@ async def main():
 
         # Create a client using PetKit account email and password
         # For PetKit Asia accounts, the client would be in the form of client = PetKitClient('email', 'password', session, True)
+        # For PetKit China accounts, the client would be in the form of client = PetKitClient('account number as string', 'password', session, False, True)
         client = PetKitClient('email', 'password', session)
 
 
