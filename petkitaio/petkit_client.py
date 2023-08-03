@@ -48,7 +48,7 @@ from petkitaio.constants import (
     W5_LIGHT_POWER,
     W5_SETTINGS_COMMANDS,
 )
-from petkitaio.exceptions import (AccountTypeError, AuthError, BluetoothError, PetKitError, ServerError)
+from petkitaio.exceptions import (AuthError, BluetoothError, PetKitError, RegionError, ServerError)
 from petkitaio.model import (Feeder, LitterBox, Pet, PetKitData, Purifier, W5Fountain)
 
 LOGGER = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class PetKitClient:
     """PetKit client."""
 
     def __init__(
-        self, username: str, password: str, session: ClientSession | None = None, asia_account: bool = False, china_account: bool = False, timeout: int = TIMEOUT
+        self, username: str, password: str, session: ClientSession | None = None, region: str = None, timeout: int = TIMEOUT
     ) -> None:
         """Initialize PetKit Client.
 
@@ -67,14 +67,15 @@ class PetKitClient:
         session: aiohttp.ClientSession or None to create a new session
         """
 
-        # Catch if a user is trying to set both asia and china account to true
-        if asia_account and china_account:
-            raise AccountTypeError('Only one region (Asia or China) may be set to True. Not both.')
+        # Catch if a user failed to define a region
+        if region is None:
+            raise RegionError('A region must be specified in order to log into your PetKit account.')
 
         self.username: str = username
         self.password: str = password
-        self.base_url: Region = Region.ASIA if asia_account else Region.CN if china_account else Region.US
-        self.server_list: list | None = None
+        self.region: str = region
+        self.base_url: str = ''
+        self.servers_dict: dict = {}
         self._session: ClientSession = session if session else ClientSession()
         self.tz: str = get_localzone_name()
         self.timeout: int = timeout
@@ -103,9 +104,23 @@ class PetKitClient:
         }
         data = {}
         response = await self._post(url, headers, data)
-        self.server_list = response['result']['list']
+        server_list = response['result']['list']
+        for region in server_list:
+            self.servers_dict[region["name"]] = {
+                "id": region["id"],
+                "url": region["gateway"]
+            }
 
     async def login(self) -> None:
+
+        await self.get_api_server_list()
+        # Determine the user's base URL
+        if self.region == "China":
+            self.base_url = Region.CN
+        elif self.region in self.servers_dict:
+            self.base_url = self.servers_dict[self.region]["url"]
+        else:
+            raise RegionError('Region specified is not a valid region.')
 
         login_url = f'{self.base_url}{Endpoint.LOGIN}'
 
@@ -124,6 +139,7 @@ class PetKitClient:
             'encrypt': '1',
             'oldVersion': Header.API_VERSION,
             'password': hashlib.md5(self.password.encode()).hexdigest(),
+            'region': self.servers_dict[self.region]["id"],
             'username': self.username
         }
 
