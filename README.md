@@ -2,7 +2,7 @@
 
 Asynchronous Python library for PetKit's API.
 
-This is PetKit's undocumented API. With that said, future changes made by PetKit may break this library. The API endpoint used is determined based on the region your account is locked to. In order to use this library with PetKit Asia accounts, be sure to set the asia_account parameter to `True`. In order to use this library with PetKit China accounts, be sure to set the china_account parameter to `True`.
+This is PetKit's undocumented API. With that said, future changes made by PetKit may break this library. The API endpoint used is determined based on the region your account is locked to. See the `Regions` section for available region values.
 
 ## **Currently Supported Devices**:
 
@@ -35,7 +35,264 @@ This package depends on [aiohttp](https://docs.aiohttp.org/en/stable/) and [tzlo
 
 ## Usage
 
+### Regions
+___
+
+<details>
+  <summary> <b>See regions available</b> (<i>click to expand</i>)</summary>
+  <!---->
+
+| Region                                                |
+|-------------------------------------------------------|
+| Afghanistan                                           |
+| Aland Islands                                         |
+| Albania                                               |
+| Algeria                                               |
+| American Samoa                                        |
+| Andorra                                               |
+| Angola                                                |
+| Anguilla                                              |
+| Antarctica                                            |
+| Antigua and Barbuda                                   |
+| Argentina                                             |
+| Armenia                                               |
+| Aruba                                                 |
+| Australia                                             |
+| Austria                                               |
+| Azerbaijan                                            |
+| Bahamas                                               |
+| Bahrain                                               |
+| Bangladesh                                            |
+| Barbados                                              |
+| Belarus                                               |
+| Belgium                                               |
+| Belize                                                |
+| Benin                                                 |
+| Bermuda                                               |
+| Bhutan                                                |
+| Bolivia                                               |
+| Bosnia and Herzegovina                                |
+| Botswana                                              |
+| Bouvet Island                                         |
+| Brazil                                                |
+| British Indian Ocean Territory                        |
+| Brunei Darussalam                                     |
+| Bulgaria                                              |
+| Burkina Faso                                          |
+| Burundi                                               |
+| Cambodia                                              |
+| Cameroon                                              |
+| Canada                                                |
+| Cape Verde                                            |
+| Cayman Islands                                        |
+| Central African Republic                              |
+| Chad                                                  |
+| Chile                                                 |
+| China                                                 |
+| Christmas Island                                      |
+| Cocos (Keeling) Islands                               |
+| Colombia                                              |
+| Comoros                                               |
+| Congo                                                 |
+| Congo (the Democratic Republic of the Congo)          |
+| Cook Islands                                          |
+| Costa Rica                                            |
+| Côte d'Ivoire                                         |
+| Croatia                                               |
+| Cuba                                                  |
+| Cyprus                                                |
+| Czech Republic                                        |
+| Denmark                                               |
+| Djibouti                                              |
+| Dominica                                              |
+| Dominican Republic                                    |
+| Ecuador                                               |
+| Egypt                                                 |
+| El Salvador                                           |
+| Equatorial Guinea                                     |
+| Eritrea                                               |
+| Estonia                                               |
+| Ethiopia                                              |
+| Falkland Islands [Malvinas]                           |
+| Faroe Islands                                         |
+| Fiji                                                  |
+| Finland                                               |
+| France                                                |
+| French Guiana                                         |
+| French Polynesia                                      |
+| French Southern Territories                           |
+| Gabon                                                 |
+| Gambia                                                |
+| Georgia                                               |
+| Germany                                               |
+| Ghana                                                 |
+| Gibraltar                                             |
+| Greece                                                |
+| Greenland                                             |
+| Grenada                                               |
+| Guadeloupe                                            |
+| Guam                                                  |
+| Guatemala                                             |
+| Guernsey                                              |
+| Guinea                                                |
+| Guinea-Bissau                                         |
+| Guyana                                                |
+| Haiti                                                 |
+| Heard Island and McDonald Islands                     |
+| Holy See [Vatican City State]                         |
+| Honduras                                              |
+| Hong Kong                                             |
+| Hungary                                               |
+| Iceland                                               |
+| India                                                 |
+| Indonesia                                             |
+| Iran (the Islamic Republic of Iran)                   |
+| Iraq                                                  |
+| Ireland                                               |
+| Isle of Man                                           |
+| Israel                                                |
+| Italy                                                 |
+| Jamaica                                               |
+| Japan                                                 |
+| Jersey                                                |
+| Jordan                                                |
+| Kazakhstan                                            |
+| Kenya                                                 |
+| Kiribati                                              |
+| Korea (the Democratic People's Republic of Korea)     |
+| Korea (the Republic of Korea)                         |
+| Kuwait                                                |
+| Kyrgyzstan                                            |
+| Lao People's Democratic Republic                      |
+| Latvia                                                |
+| Lebanon                                               |
+| Lesotho                                               |
+| Liberia                                               |
+| Libyan Arab Jamahiriya                                |
+| Liechtenstein                                         |
+| Lithuania                                             |
+| Luxembourg                                            |
+| Macao                                                 |
+| Macedonia (the former Yugoslav Republic of Macedonia) |
+| Madagascar                                            |
+| Malawi                                                |
+| Malaysia                                              |
+| Maldives                                              |
+| Mali                                                  |
+| Malta                                                 |
+| Marshall Islands                                      |
+| Martinique                                            |
+| Mauritania                                            |
+| Mauritius                                             |
+| Mayotte                                               |
+| Mexico                                                |
+| Micronesia (the Federated States of Micronesia)       |
+| Moldova (the Republic of Moldova)                     |
+| Monaco                                                |
+| Mongolia                                              |
+| Montenegro                                            |
+| Montserrat                                            |
+| Morocco                                               |
+| Mozambique                                            |
+| Myanmar                                               |
+| Namibia                                               |
+| Nauru                                                 |
+| Nepal                                                 |
+| Netherlands                                           |
+| Netherlands Antilles                                  |
+| New Caledonia                                         |
+| New Zealand                                           |
+| Nicaragua                                             |
+| Niger                                                 |
+| Nigeria                                               |
+| Niue                                                  |
+| Norfolk Island                                        |
+| Northern Mariana Islands                              |
+| Norway                                                |
+| Oman                                                  |
+| Pakistan                                              |
+| Palau                                                 |
+| Palestinian Territory                                 |
+| Panama                                                |
+| Papua New Guinea                                      |
+| Paraguay                                              |
+| Peru                                                  |
+| Philippines                                           |
+| Pitcairn                                              |
+| Poland                                                |
+| Portugal                                              |
+| Puerto Rico                                           |
+| Qatar                                                 |
+| Réunion                                               |
+| Romania                                               |
+| Russian Federation                                    |
+| Rwanda                                                |
+| Saint Helena                                          |
+| Saint Kitts and Nevis                                 |
+| Saint Lucia                                           |
+| Saint Pierre and Miquelon                             |
+| Saint Vincent and the Grenadines                      |
+| Samoa                                                 |
+| San Marino                                            |
+| Sao Tome and Principe                                 |
+| Saudi Arabia                                          |
+| Senegal                                               |
+| Serbia                                                |
+| Seychelles                                            |
+| Sierra Leone                                          |
+| Singapore                                             |
+| Slovakia                                              |
+| Slovenia                                              |
+| Solomon Islands                                       |
+| Somalia                                               |
+| South Africa                                          |
+| South Georgia and the South Sandwich Islands          |
+| Spain                                                 |
+| Sri Lanka                                             |
+| Sudan                                                 |
+| Suriname                                              |
+| Svalbard and Jan Mayen                                |
+| Swaziland                                             |
+| Sweden                                                |
+| Switzerland                                           |
+| Syrian Arab Republic                                  |
+| Taiwan (Province of China)                            |
+| Tajikistan                                            |
+| Tanzania,United Republic of                           |
+| Thailand                                              |
+| Timor-Leste                                           |
+| Togo                                                  |
+| Tokelau                                               |
+| Tonga                                                 |
+| Trinidad and Tobago                                   |
+| Tunisia                                               |
+| Turkey                                                |
+| Turkmenistan                                          |
+| Turks and Caicos Islands                              |
+| Tuvalu                                                |
+| Uganda                                                |
+| Ukraine                                               |
+| United Arab Emirates                                  |
+| United Kingdom                                        |
+| United States                                         |
+| United States Minor Outlying Islands                  |
+| Uruguay                                               |
+| Uzbekistan                                            |
+| Vanuatu                                               |
+| Venezuela                                             |
+| Viet Nam                                              |
+| Virgin Islands (British)                              |
+| Virgin Islands (U.S.)                                 |
+| Wallis and Futuna                                     |
+| Western Sahara                                        |
+| Yemen                                                 |
+| Zambia                                                |
+| Zimbabwe                                              |
+
+</details>
+
 ### Creating Client
+___
 
 ```python
 import asyncio
@@ -45,10 +302,8 @@ from aiohttp import ClientSession
 async def main():
     async with ClientSession() as session:
 
-        # Create a client using PetKit account email and password
-        # For PetKit Asia accounts, the client would be in the form of client = PetKitClient('email', 'password', session, True)
-        # For PetKit China accounts, the client would be in the form of client = PetKitClient('account number as string', 'password', session, False, True)
-        client = PetKitClient('email', 'password', session)
+        # Create a client using PetKit account email, password, and region
+        client = PetKitClient('email', 'password', session, 'United States')
 
 
         ###################################################################################
