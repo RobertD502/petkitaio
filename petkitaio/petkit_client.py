@@ -48,7 +48,7 @@ from petkitaio.constants import (
     W5_LIGHT_POWER,
     W5_SETTINGS_COMMANDS,
 )
-from petkitaio.exceptions import (AuthError, BluetoothError, PetKitError, RegionError, ServerError)
+from petkitaio.exceptions import (AuthError, BluetoothError, PetKitError, RegionError, ServerError, TimezoneError)
 from petkitaio.model import (Feeder, LitterBox, Pet, PetKitData, Purifier, W5Fountain)
 
 LOGGER = logging.getLogger(__name__)
@@ -166,6 +166,8 @@ class PetKitClient:
     async def create_header(self) -> dict[str, str]:
         """Create header for interaction with devices."""
 
+        if self.tz is None:
+            raise TimezoneError("Unable to find the TZ environmental variable on the OS")
         header = {
             'X-Session': self.token,
             'F-Session': self.token,
