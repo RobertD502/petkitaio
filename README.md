@@ -28,7 +28,7 @@ This is PetKit's undocumented API. With that said, future changes made by PetKit
 
 ## Important
 
-PetKit accounts can only be logged in on one device at a time. Using this library will result in getting signed out of the mobile app. You can avoid this by creating a secondary account and sharing devices from the main account (except water fountains). However, some device functionality is lost when using a secondary account as well as not being able to share pets between accounts.
+PetKit accounts can only be logged in on one device at a time. Using this library will result in getting signed out of the mobile app. If you want to continue using the mobile app, use the family share feature to share devices to a secondary account. `Note`: The secondary account needs to be used with the mobile app while the primary account is used with this library as this library will not fetch devices that are part of family sharing. 
 
 
 This package depends on [aiohttp](https://docs.aiohttp.org/en/stable/) and [tzlocal](https://pypi.org/project/tzlocal/). `Python 3.7` or greater is required.
