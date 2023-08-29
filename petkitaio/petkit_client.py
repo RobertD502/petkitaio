@@ -463,7 +463,7 @@ class PetKitClient:
             # State should be 1 if polling was successful 
             if conn_resp['result']['state'] != 1:
                 ble_connect_attempt += 1
-                await asyncio.sleep(1)
+                await asyncio.sleep(2)
                 await self.start_ble_connection(conn_url, header, ble_data, ble_connect_attempt)
             else:
                 conn_success = True
@@ -481,7 +481,7 @@ class PetKitClient:
             # Result should be 1 if polling was successful 
             if poll_resp['result'] != 1:
                 ble_poll_attempt += 1
-                await asyncio.sleep(1)
+                await asyncio.sleep(2)
                 await self.poll_ble_connection(poll_url, header, ble_data, ble_poll_attempt)
             else:
                 poll_success = True
