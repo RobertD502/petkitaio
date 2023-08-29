@@ -715,11 +715,7 @@ class PetKitClient:
                     await self._post(command_url, header, command_data)
                     # Reset ble_sequence
                     self.ble_sequence = 0
-                    # Cancel the BLE connection
-                    await self._post(disconnect_url, header, conn_data)
                 else:
-                    # Cancel the BLE connection
-                    await self._post(disconnect_url, header, conn_data)
                     raise BluetoothError(f'BLE polling step failed while attempting to send the command to the water fountain')
             else:
                 raise BluetoothError(f'BLE connection step failed while attempting to send the command to the water fountain')
