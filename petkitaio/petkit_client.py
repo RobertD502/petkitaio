@@ -58,7 +58,7 @@ class PetKitClient:
     """PetKit client."""
 
     def __init__(
-        self, username: str, password: str, session: ClientSession | None = None, region: str = None, timeout: int = TIMEOUT
+        self, username: str, password: str, session: ClientSession | None = None, region: str = None, timezone: str = None, timeout: int = TIMEOUT
     ) -> None:
         """Initialize PetKit Client.
 
@@ -77,7 +77,7 @@ class PetKitClient:
         self.base_url: str = ''
         self.servers_dict: dict = {}
         self._session: ClientSession = session if session else ClientSession()
-        self.tz: str = get_localzone_name()
+        self.tz: str = get_localzone_name() if timezone is None else timezone
         self.timeout: int = timeout
         self.token: str | None = None
         self.token_expiration: datetime | None = None
