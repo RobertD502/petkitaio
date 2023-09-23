@@ -58,7 +58,7 @@ class PetKitClient:
     """PetKit client."""
 
     def __init__(
-        self, username: str, password: str, session: ClientSession | None = None, region: str = None, timeout: int = TIMEOUT
+        self, username: str, password: str, session: ClientSession | None = None, region: str = None, timezone: str = None, timeout: int = TIMEOUT
     ) -> None:
         """Initialize PetKit Client.
 
@@ -77,7 +77,7 @@ class PetKitClient:
         self.base_url: str = ''
         self.servers_dict: dict = {}
         self._session: ClientSession = session if session else ClientSession()
-        self.tz: str = get_localzone_name()
+        self.tz: str = get_localzone_name() if timezone is None else timezone
         self.timeout: int = timeout
         self.token: str | None = None
         self.token_expiration: datetime | None = None
@@ -225,8 +225,13 @@ class PetKitClient:
                     }
 
                     if self.has_relay:
+                        ble_connect_attempt: int = 1
+                        ble_poll_attempt: int = 1
                         main_online: bool = False
                         ble_url = f'{self.base_url}{Endpoint.BLE_DEVICES}'
+                        conn_url = f'{self.base_url}{Endpoint.BLE_CONNECT}'
+                        poll_url = f'{self.base_url}{Endpoint.BLE_POLL}'
+                        disconnect_url = f'{self.base_url}{Endpoint.BLE_CANCEL}'
                         relay_devices = await self._post(ble_url, header, data={})
                         if relay_devices['result']:
                             ble_available = True
@@ -240,25 +245,16 @@ class PetKitClient:
                             if ble_available and main_online:
                                 device_details = await self._post(wf_url, header, data)
                                 mac = device_details['result']['mac']
-                                conn_url = f'{self.base_url}{Endpoint.BLE_CONNECT}'
                                 ble_data = {
                                     'bleId': device_details['result']['id'],
                                     'mac': mac,
                                     'type': relay_tc
                                 }
-                                conn_resp = await self._post(conn_url, header, ble_data)
-                                # Check to see if BLE connection was successful
-                                if conn_resp['result']['state'] != 1:
-                                    LOGGER.warning(f'BLE connection to {device_details["result"]["name"]} failed. Will try again during next refresh.')
-                                    fountain_data = device_details
-                                else:
-                                    poll_url = f'{self.base_url}{Endpoint.BLE_POLL}'
-                                    poll_resp = await self._post(poll_url, header, ble_data)
-                                    if poll_resp['result'] != 0:
-                                        LOGGER.warning(
-                                            f'BLE polling to {device_details["result"]["name"]} failed. Will try again during next refresh.')
-                                        fountain_data = device_details
-                                    else:
+                                
+                                conn_success = await self.start_ble_connection(conn_url, header, ble_data, ble_connect_attempt)
+                                if conn_success:
+                                    poll_success = await self.poll_ble_connection(poll_url, header, ble_data, ble_poll_attempt)
+                                    if poll_success:
                                         # Wait a bit for BLE connection to be established before looking up most recent data
                                         await asyncio.sleep(2)
                                         # Need to reset ble_sequence if get_petkit_data is being called multiple times without a W5Commmand sent in between
@@ -269,10 +265,19 @@ class PetKitClient:
                                         try:
                                             await self.initial_ble_commands(device_details, relay_tc)
                                         except BluetoothError:
-                                            #LOGGER.error('BLE connection failed. Trying again on next update.')
                                             pass
                                         finally:
                                             fountain_data = await self._post(wf_url, header, data)
+                                            # Make sure to sever the BLE connection after getting updated data
+                                            await self._post(disconnect_url, header, ble_data)
+                                    else:
+                                        LOGGER.warning(f'BLE polling to {device_details["result"]["name"]} failed after 4 attempts. Will try again during next refresh.')
+                                        # Sever the BLE relay connection if polling attempts fail
+                                        await self._post(disconnect_url, header, ble_data)
+                                        fountain_data = device_details
+                                else:
+                                    LOGGER.warning(f'BLE connection to {device_details["result"]["name"]} failed after 4 attempts. Will try again during next refresh.')
+                                    fountain_data = device_details
                             if not main_online:
                                 LOGGER.warning(f'Unable to use BLE relay: Main relay device is reported as being offline. Fetching latest available data.')
                                 fountain_data = await self._post(wf_url, header, data)
@@ -448,6 +453,43 @@ class PetKitClient:
 # <--------------------------------------- Methods for controlling devices --------------------------------------->
 
 
+    async def start_ble_connection(self, conn_url: str, header: dict[str, Any], ble_data: dict[str, Any], ble_connect_attempt: int) -> bool:
+        """Used to initiate the BLE relay connection."""
+
+        # Stop trying to connect via BLE relay after 4 attempts
+        if ble_connect_attempt > 4:
+            conn_success = False
+            return conn_success
+        else:
+            conn_resp = await self._post(conn_url, header, ble_data)
+            # State should be 1 if connection was successful 
+            if conn_resp['result']['state'] != 1:
+                ble_connect_attempt += 1
+                await asyncio.sleep(3)
+                await self.start_ble_connection(conn_url, header, ble_data, ble_connect_attempt)
+            else:
+                conn_success = True
+                return conn_success
+
+    async def poll_ble_connection(self, poll_url: str, header: dict[str, Any], ble_data: dict[str, Any], ble_poll_attempt: int) -> bool:
+        """Initiate polling via the BLE relay and attempt again if it fails."""
+
+        # Stop trying to poll via BLE relay after 4 attempts
+        if ble_poll_attempt > 4:
+            poll_success = False
+            return poll_success
+        else:
+            poll_resp = await self._post(poll_url, header, ble_data)
+            # Result should be 0 if polling was successful 
+            if poll_resp['result'] != 0:
+                ble_poll_attempt += 1
+                await asyncio.sleep(3)
+                await self.poll_ble_connection(poll_url, header, ble_data, ble_poll_attempt)
+            else:
+                poll_success = True
+                return poll_success
+        
+    
     async def initial_ble_commands(self, device: dict[str, Any], relay_type: int) -> None:
         """We have to make two calls to get updated date from the water fountain."""
         command_url = f'{self.base_url}{Endpoint.CONTROL_WF}'
@@ -652,6 +694,7 @@ class PetKitClient:
             connect_url = f'{self.base_url}{Endpoint.BLE_CONNECT}'
             poll_url = f'{self.base_url}{Endpoint.BLE_POLL}'
             command_url = f'{self.base_url}{Endpoint.CONTROL_WF}'
+            disconnect_url = f'{self.base_url}{Endpoint.BLE_CANCEL}'
             cmnd_code = W5_COMMAND_TO_CODE[command]
 
             command_data = {
@@ -662,14 +705,29 @@ class PetKitClient:
                 'type': water_fountain.ble_relay
             }
             # Initiate BLE connection and poll
-            await self._post(connect_url, header, conn_data)
-            await self._post(poll_url, header, conn_data)
+            conn_success = await self.start_ble_connection(connect_url, header, conn_data, 1)
+            if conn_success:
+                poll_success = await self.poll_ble_connection(poll_url, header, conn_data, 1)
+                if poll_success:
+                    # Ensure BLE connection is made before sending command
+                    await asyncio.sleep(2)
+                    # Send command to water fountain via BLE relay
+                    await self._post(command_url, header, command_data)
+                    # Reset ble_sequence
+                    self.ble_sequence = 0
+                else:
+                    raise BluetoothError(f'BLE polling step failed while attempting to send the command to the water fountain')
+            else:
+                raise BluetoothError(f'BLE connection step failed while attempting to send the command to the water fountain')
+            
+#            await self._post(connect_url, header, conn_data)
+#            await self._post(poll_url, header, conn_data)
             # Ensure BLE connection is made before sending command
-            await asyncio.sleep(2)
+#            await asyncio.sleep(2)
             # Send command to water fountain via BLE relay
-            await self._post(command_url, header, command_data)
+#            await self._post(command_url, header, command_data)
             # Reset ble_sequence
-            self.ble_sequence = 0
+#            self.ble_sequence = 0
 
     async def call_pet(self, feeder: Feeder) -> None:
         """Call pet on D3 (Infinity) feeder."""
