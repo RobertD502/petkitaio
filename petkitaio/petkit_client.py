@@ -309,13 +309,14 @@ class PetKitClient:
                                     self.last_ble_poll = datetime.now()
                                     fountain_data = await self._post(wf_url, header, data)
                                     # Make sure to sever the BLE connection after getting updated data
-                                    await asyncio.sleep(1)
+                                    await asyncio.sleep(2)
                                     await self._post(disconnect_url, header, ble_data)
                             else:
                                 LOGGER.warning(
                                     f'BLE polling to {device_details["result"]["name"]} failed after 4 attempts. Will try again during next refresh.'
                                 )
                                 # Sever the BLE relay connection if polling attempts fail
+                                await asyncio.sleep(2)
                                 await self._post(disconnect_url, header, ble_data)
                                 fountain_data = device_details
                         else:
