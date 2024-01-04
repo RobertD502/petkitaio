@@ -768,7 +768,7 @@ class PetKitClient:
                 poll_success = await self.poll_ble_connection(poll_url, header, conn_data, 1)
                 if poll_success:
                     # Ensure BLE connection is made before sending command
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(4)
                     # Send command to water fountain via BLE relay
                     await self._post(command_url, header, command_data)
                     # Reset ble_sequence
