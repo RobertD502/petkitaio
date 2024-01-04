@@ -309,6 +309,7 @@ class PetKitClient:
                                     self.last_ble_poll = datetime.now()
                                     fountain_data = await self._post(wf_url, header, data)
                                     # Make sure to sever the BLE connection after getting updated data
+                                    await asyncio.sleep(1)
                                     await self._post(disconnect_url, header, ble_data)
                             else:
                                 LOGGER.warning(
@@ -773,6 +774,9 @@ class PetKitClient:
                     await self._post(command_url, header, command_data)
                     # Reset ble_sequence
                     self.ble_sequence = 0
+                    # Sever Relay connection when done
+                    await asyncio.sleep(1)
+                    await self._post(disconnect_url, header, conn_data)
                 else:
                     raise BluetoothError(f'BLE polling step failed while attempting to send the command to the water fountain')
             else:
