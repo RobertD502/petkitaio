@@ -34,6 +34,7 @@ class Endpoint(StrEnum):
     MINI_DESICCANT_RESET = '/feedermini/desiccant_reset'
     MINI_MANUAL_FEED = '/feedermini/save_dailyfeed'
     MINI_SETTING = '/feedermini/update'
+    NOTIFICATIONS = '/user/deviceLog'
     PET_PROPS = '/pet/updatepetprops'
     REFRESH_HOME = '/discovery/refreshHome'
     REPLENISHED_FOOD = '/added'
@@ -188,6 +189,17 @@ class W5Command(StrEnum):
 
 
 TIMEOUT = 5 * 60
+
+NOTIFICATIONS_LIMIT = 30
+
+NOTIFICATIONS_TYPE = [
+    -1, # All
+    1, # Comments
+    2, # Likes
+    3, # Mentions
+    4, # Notifications
+    5 # PetKit IM messages
+]
 
 CLIENT_DICT = {
     "locale":"en-US",

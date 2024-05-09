@@ -19,6 +19,8 @@ from petkitaio.constants import (
     BLE_HEADER,
     BLUETOOTH_ERRORS,
     CLIENT_DICT,
+    NOTIFICATIONS_LIMIT,
+    NOTIFICATIONS_TYPE,
     Endpoint,
     FeederCommand,
     FEEDER_LIST,
@@ -194,6 +196,19 @@ class PetKitClient:
         }
         device_roster = await self._post(url, header, data)
         return device_roster
+    
+    async def get_user_notifications(self) -> dict[str, Any]:
+        """Fetch user notifications endpoint to get all available notifications."""
+
+        await self.check_token()
+        url = f'{self.base_url}{Endpoint.NOTIFICATIONS}'
+        header = await self.create_header()
+        data = {
+            'type': NOTIFICATIONS_TYPE[4],
+            'limit': NOTIFICATIONS_LIMIT
+        }
+        notifications = await self._post(url, header, data)
+        return notifications
 
     async def get_petkit_data(self) -> PetKitData:
         """Fetch data for all PetKit devices."""
