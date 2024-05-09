@@ -259,10 +259,10 @@ class PetKitClient:
 
         if has_relay:
             current_dt = datetime.now()
-            ### Only initiate BLE relay if 5 minutes have elapsed since the last time the relay was initiated.
+            ### Only initiate BLE relay if 7 minutes have elapsed since the last time the relay was initiated.
             ### This helps prevent some devices, such as the Pura Max, from locking up (i.e., doesn't
             ### automatically cycle after cat usage) if they are asked to initiate the BLE relay too frequently.
-            if self.last_ble_poll is None or ((current_dt-self.last_ble_poll).total_seconds() >= 300):
+            if self.last_ble_poll is None or ((current_dt-self.last_ble_poll).total_seconds() >= 420):
                 ble_connect_attempt: int = 1
                 ble_poll_attempt: int = 1
                 main_online: bool = False
@@ -776,7 +776,7 @@ class PetKitClient:
                     # Reset ble_sequence
                     self.ble_sequence = 0
                     # Sever Relay connection when done
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(2)
                     await self._post(disconnect_url, header, conn_data)
                 else:
                     raise BluetoothError(f'BLE polling step failed while attempting to send the command to the water fountain')
