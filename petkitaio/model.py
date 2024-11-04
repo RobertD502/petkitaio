@@ -57,6 +57,7 @@ class W5Fountain:
     id: int
     data: dict[str, Any]
     type: str
+    group_relay: bool
     ble_relay: Optional[int] = None
 
 
