@@ -493,6 +493,8 @@ class PetKitClient:
 
     async def _post(self, url: str, headers: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:
         """Make POST API call."""
+
+        LOGGER.debug(f'Calling {url}')
         async with self._session.post(url, headers=headers, data=data, timeout=self.timeout) as resp:
             return await self._response(resp)
 
