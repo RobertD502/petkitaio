@@ -191,6 +191,7 @@ class PetKitClient:
         header = await self.create_header()
         data = {
             'day': str(datetime.now().date()).replace('-', ''),
+            'groupId': self.user_id
         }
         device_roster = await self._post(url, header, data)
         return device_roster
@@ -254,7 +255,7 @@ class PetKitClient:
         relay_tc: int = 14
         wf_url = f'{self.base_url}{Endpoint.W5}'
         data = {
-            'id': device['data']['id']
+            'id': device['id']
         }
 
         if has_relay:
@@ -270,7 +271,7 @@ class PetKitClient:
                 conn_url = f'{self.base_url}{Endpoint.BLE_CONNECT}'
                 poll_url = f'{self.base_url}{Endpoint.BLE_POLL}'
                 disconnect_url = f'{self.base_url}{Endpoint.BLE_CANCEL}'
-                relay_devices = await self._post(ble_url, header, data={})
+                relay_devices = await self._post(ble_url, header, data={'groupId': self.user_id,})
                 if relay_devices['result']:
                     ble_available = True
                     for relay_device in relay_devices['result']:
@@ -346,9 +347,9 @@ class PetKitClient:
 
         sound_list: dict[int, str] = {}
         device_type_lower = device["type"].lower()
-        feeder_url = f'{self.base_url}/{device_type_lower}{Endpoint.DEVICE_DETAIL}'
+        feeder_url = f'{self.base_url}{device_type_lower}/{Endpoint.DEVICE_DETAIL}'
         data = {
-            'id': device['data']['id']
+            'id': device['id']
         }
         feeder_data = await self._post(feeder_url, header, data)
 
@@ -360,9 +361,9 @@ class PetKitClient:
 
         if device['type'] in ['D3', 'D4sh']:
             sound_list[-1] = 'Default'
-            sound_url = f'{self.base_url}/{device_type_lower}{Endpoint.SOUND_LIST}'
+            sound_url = f'{self.base_url}{device_type_lower}/{Endpoint.SOUND_LIST}'
             sound_data = {
-                'deviceId': device['data']['id']
+                'deviceId': device['id']
             }
             sound_response = await self._post(sound_url, header, sound_data)
             result = sound_response['result']
@@ -383,28 +384,28 @@ class PetKitClient:
 
         ### Fetch device_detail page
         device_type_lower = device["type"].lower()
-        dd_url = f'{self.base_url}/{device_type_lower}{Endpoint.DEVICE_DETAIL}'
+        dd_url = f'{self.base_url}{device_type_lower}/{Endpoint.DEVICE_DETAIL}'
         dd_data = {
-            'id': device['data']['id']
+            'id': device['id']
         }
         device_detail = await self._post(dd_url, header, dd_data)
 
         ### Fetch DeviceRecord page
-        dr_url = f'{self.base_url}/{device_type_lower}{Endpoint.DEVICE_RECORD}'
+        dr_url = f'{self.base_url}{device_type_lower}/{Endpoint.DEVICE_RECORD}'
         if device['type'] == 'T4':
             date_key = 'date'
         else:
             date_key = 'day'
         dr_data = {
             date_key: str(datetime.now().date()).replace('-', ''),
-            'deviceId': device['data']['id']
+            'deviceId': device['id']
         }
         device_record = await self._post(dr_url, header, dr_data)
 
         ### Fetch statistic page
-        stat_url = f'{self.base_url}/{device_type_lower}{Endpoint.STATISTIC}'
+        stat_url = f'{self.base_url}{device_type_lower}/{Endpoint.STATISTIC}'
         stat_data = {
-            'deviceId': device['data']['id'],
+            'deviceId': device['id'],
             'endDate': str(datetime.now().date()).replace('-', ''),
             'startDate': str(datetime.now().date()).replace('-', ''),
             'type': 0
@@ -445,9 +446,9 @@ class PetKitClient:
 
         ### Fetch device_detail page
         device_type_lower = device["type"].lower()
-        dd_url = f'{self.base_url}/{device_type_lower}{Endpoint.DEVICE_DETAIL}'
+        dd_url = f'{self.base_url}{device_type_lower}/{Endpoint.DEVICE_DETAIL}'
         dd_data = {
-            'id': device['data']['id']
+            'id': device['id']
         }
         device_detail = await self._post(dd_url, header, dd_data)
 
@@ -713,7 +714,7 @@ class PetKitClient:
     async def get_litter_box_record(self, id: int, type: str, header: dict[str, Any]) -> dict[str, Any]:
         """Fetch the litter box getDeviceRecord endpoint."""
 
-        url = f'{self.base_url}/{type}{Endpoint.DEVICE_RECORD}'
+        url = f'{self.base_url}{type}/{Endpoint.DEVICE_RECORD}'
         data = {
             'day': str(datetime.now().date()).replace('-', ''),
             'deviceId': id
@@ -795,7 +796,7 @@ class PetKitClient:
     async def call_pet(self, feeder: Feeder) -> None:
         """Call pet on D3 (Infinity) feeder."""
 
-        url = f'{self.base_url}/{feeder.type}{Endpoint.CALL_PET}'
+        url = f'{self.base_url}{feeder.type}/{Endpoint.CALL_PET}'
         header = await self.create_header()
         data = {
             'deviceId': feeder.id
@@ -805,7 +806,7 @@ class PetKitClient:
     async def control_litter_box(self, litter_box: LitterBox, command: LitterBoxCommand) -> None:
         """Control PetKit litter boxes."""
 
-        url = f'{self.base_url}/{litter_box.type}{Endpoint.CONTROL_DEVICE}'
+        url = f'{self.base_url}{litter_box.type}/{Endpoint.CONTROL_DEVICE}'
         value: int = 0
 
         if litter_box.type == 't4':
@@ -874,7 +875,7 @@ class PetKitClient:
     async def control_purifier(self, purifier: Purifier, command: PurifierCommand) -> None:
         """Control PetKit purifiers."""
 
-        url = f'{self.base_url}/{purifier.type}{Endpoint.CONTROL_DEVICE}'
+        url = f'{self.base_url}{purifier.type}/{Endpoint.CONTROL_DEVICE}'
         value: int = 0
         if command == PurifierCommand.POWER:
             # Power of 1 means it is on. Power of 2 means it is on and in standby mode
@@ -916,7 +917,7 @@ class PetKitClient:
         elif feeder.type == 'feeder':
             url = f'{self.base_url}{Endpoint.FRESH_ELEMENT_MANUAL_FEED}'
         else:
-            url = f'{self.base_url}/{feeder.type}{Endpoint.MANUAL_FEED}'
+            url = f'{self.base_url}{feeder.type}/{Endpoint.MANUAL_FEED}'
         header = await self.create_header()
         data = {
             'amount': amount,
@@ -936,7 +937,7 @@ class PetKitClient:
         if invalid_amount1 or invalid_amount2:
             raise PetKitError('Invalid portion amount specified. Each hopper can only take a portion value between/including 0 to 10')
         else:
-            url = f'{self.base_url}/{feeder.type}{Endpoint.MANUAL_FEED}'
+            url = f'{self.base_url}{feeder.type}/{Endpoint.MANUAL_FEED}'
             header = await self.create_header()
             data = {
                 'amount1': amount1,
@@ -960,7 +961,7 @@ class PetKitClient:
             url = f'{self.base_url}{Endpoint.FRESH_ELEMENT_SETTING}'
         # D3 and D4 Feeders
         else:
-            url = f'{self.base_url}/{feeder.type}{Endpoint.UPDATE_SETTING}'
+            url = f'{self.base_url}{feeder.type}/{Endpoint.UPDATE_SETTING}'
         header = await self.create_header()
         setting_dict = {
             setting: value
@@ -974,7 +975,7 @@ class PetKitClient:
     async def update_litter_box_settings(self, litter_box: LitterBox, setting: LitterBoxSetting | None = None, value: int | None = None) -> None:
         """Change the setting on a litter box."""
 
-        url = f'{self.base_url}/{litter_box.type}{Endpoint.UPDATE_SETTING}'
+        url = f'{self.base_url}{litter_box.type}/{Endpoint.UPDATE_SETTING}'
         header = await self.create_header()
         setting_dict = {
             setting: value
@@ -1002,7 +1003,7 @@ class PetKitClient:
     async def update_purifier_settings(self, purifier: Purifier, setting: PurifierSetting, value: int) -> None:
         """Change the setting on a purifier."""
 
-        url = f'{self.base_url}/{purifier.type}{Endpoint.UPDATE_SETTING}'
+        url = f'{self.base_url}{purifier.type}/{Endpoint.UPDATE_SETTING}'
         header = await self.create_header()
         setting_dict = {
             setting: value
@@ -1018,9 +1019,9 @@ class PetKitClient:
 
         # Fresh Element feeder
         if feeder.type == 'feeder':
-            url = f'{self.base_url}/{feeder.type}{Endpoint.FRESH_ELEMENT_CANCEL_FEED}'
+            url = f'{self.base_url}{feeder.type}/{Endpoint.FRESH_ELEMENT_CANCEL_FEED}'
         else:
-            url = f'{self.base_url}/{feeder.type}{Endpoint.CANCEL_FEED}'
+            url = f'{self.base_url}{feeder.type}/{Endpoint.CANCEL_FEED}'
         header = await self.create_header()
         if feeder.type == 'd4s':
             if feeder.last_manual_feed_id is None:
@@ -1050,7 +1051,7 @@ class PetKitClient:
         elif feeder.type == 'feeder':
             url = f'{self.base_url}{Endpoint.FRESH_ELEMENT_DESICCANT_RESET}'
         else:
-            url = f'{self.base_url}/{feeder.type}{Endpoint.FEEDER_DESICCANT_RESET}'
+            url = f'{self.base_url}{feeder.type}/{Endpoint.FEEDER_DESICCANT_RESET}'
         header = await self.create_header()
         data = {
             'deviceId': feeder.id
@@ -1062,7 +1063,7 @@ class PetKitClient:
 
         if litter_box.type != 't4':
             raise PetKitError('Invalid litter box type. Only Pura Max litter boxes have N50 odor eliminators.')
-        url = f'{self.base_url}/{litter_box.type}{Endpoint.MAX_ODOR_RESET}'
+        url = f'{self.base_url}{litter_box.type}/{Endpoint.MAX_ODOR_RESET}'
         header = await self.create_header()
         data = {
             'deviceId': litter_box.id
@@ -1079,7 +1080,7 @@ class PetKitClient:
         if feeder.type != 'd4s':
             raise PetKitError('The food_replenished method is only used with D4s (Gemini) feeders.')
         else:
-            url = f'{self.base_url}/{feeder.type}{Endpoint.REPLENISHED_FOOD}'
+            url = f'{self.base_url}{feeder.type}/{Endpoint.REPLENISHED_FOOD}'
             header = await self.create_header()
             data = {
                 'deviceId': feeder.id,
@@ -1095,7 +1096,7 @@ class PetKitClient:
         if feeder.type != 'feeder':
             raise PetKitError('Calibration is only used for Fresh Element feeders.')
         else:
-            url = f'{self.base_url}/{feeder.type}{Endpoint.FRESH_ELEMENT_CALIBRATION}'
+            url = f'{self.base_url}{feeder.type}/{Endpoint.FRESH_ELEMENT_CALIBRATION}'
             header = await self.create_header()
             if command == FeederCommand.START_CALIBRATION:
                 value = 1
