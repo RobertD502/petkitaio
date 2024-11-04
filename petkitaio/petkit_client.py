@@ -157,7 +157,14 @@ class PetKitClient:
         }
         header = await self.create_header()
         family_list = await self._post(details_url, header, details_data)
-        self.group_id = family_list['result'][0]['groupId']
+        
+        # Check if 'result' list is empty
+        if family_list['result']:
+            # If it's not empty, set group_id to the first element's groupId
+            self.group_id = family_list['result'][0]['groupId']
+        else:
+            # If it's empty, set group_id to user_id
+            self.group_id = self.user_id
 
     async def check_token(self) -> None:
         """Check to see if there is a valid token or if token is about to expire.
