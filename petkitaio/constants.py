@@ -4,45 +4,45 @@ from .str_enum import StrEnum
 
 class Region(StrEnum):
 
-    US = 'http://api.petkt.com/latest'
-    ASIA = 'http://api.petktasia.com/latest'
-    CN = 'http://api.petkit.cn/6'
+    US = 'http://api.petkt.com/latest/'
+    ASIA = 'http://api.petktasia.com/latest/'
+    CN = 'http://api.petkit.cn/6/'
 
 
 class Endpoint(StrEnum):
 
-    BLE_CANCEL = '/ble/cancel'
-    BLE_CONNECT = '/ble/connect'
-    BLE_DEVICES = '/ble/ownSupportBleDevices'
-    BLE_POLL = '/ble/poll'
-    CALL_PET = '/callPet'
-    CANCEL_FEED = '/cancelRealtimeFeed'
-    CONTROL_DEVICE = '/controlDevice'
-    CONTROL_WF = '/ble/controlDevice'
-    DEVICE_DETAIL = '/device_detail'
-    DEVICE_RECORD = '/getDeviceRecord'
-    DEVICE_ROSTER = '/discovery/device_roster'
-    FEEDER_DESICCANT_RESET = '/desiccantReset'
-    FRESH_ELEMENT_CALIBRATION = '/food_reset'
-    FRESH_ELEMENT_CANCEL_FEED = '/cancel_realtime_feed'
-    FRESH_ELEMENT_DESICCANT_RESET = '/feeder/desiccant_reset'
-    FRESH_ELEMENT_MANUAL_FEED = '/feeder/save_dailyfeed'
-    FRESH_ELEMENT_SETTING = '/feeder/update'
-    LOGIN = '/user/login'
-    MANUAL_FEED = '/saveDailyFeed'
-    MAX_ODOR_RESET = '/deodorantReset'
-    MINI_DESICCANT_RESET = '/feedermini/desiccant_reset'
-    MINI_MANUAL_FEED = '/feedermini/save_dailyfeed'
-    MINI_SETTING = '/feedermini/update'
-    PET_PROPS = '/pet/updatepetprops'
-    REFRESH_HOME = '/discovery/refreshHome'
-    REPLENISHED_FOOD = '/added'
-    SOUND_LIST = '/soundList'
-    STATISTIC = '/statistic'
-    UNIT = '/app/saveunit'
-    UPDATE_SETTING = '/updateSettings'
-    USER_DETAILS = '/user/details2'
-    W5 = '/w5/deviceData'
+    BLE_CANCEL = 'ble/cancel'
+    BLE_CONNECT = 'ble/connect'
+    BLE_DEVICES = 'ble/ownSupportBleDevices'
+    BLE_POLL = 'ble/poll'
+    CALL_PET = 'callPet'
+    CANCEL_FEED = 'cancelRealtimeFeed'
+    CONTROL_DEVICE = 'controlDevice'
+    CONTROL_WF = 'ble/controlDevice'
+    DEVICE_DETAIL = 'device_detail'
+    DEVICE_RECORD = 'getDeviceRecord'
+    DEVICE_ROSTER = 'discovery/device_roster_v2'
+    FEEDER_DESICCANT_RESET = 'desiccantReset'
+    FRESH_ELEMENT_CALIBRATION = 'food_reset'
+    FRESH_ELEMENT_CANCEL_FEED = 'cancel_realtime_feed'
+    FRESH_ELEMENT_DESICCANT_RESET = 'feeder/desiccant_reset'
+    FRESH_ELEMENT_MANUAL_FEED = 'feeder/save_dailyfeed'
+    FRESH_ELEMENT_SETTING = 'feeder/update'
+    LOGIN = 'user/login'
+    MANUAL_FEED = 'saveDailyFeed'
+    MAX_ODOR_RESET = 'deodorantReset'
+    MINI_DESICCANT_RESET = 'feedermini/desiccant_reset'
+    MINI_MANUAL_FEED = 'feedermini/save_dailyfeed'
+    MINI_SETTING = 'feedermini/update'
+    PET_PROPS = 'pet/updatepetprops'
+    REFRESH_HOME = 'discovery/refreshHome'
+    REPLENISHED_FOOD = 'added'
+    SOUND_LIST = 'soundList'
+    STATISTIC = 'statistic'
+    UNIT = 'app/saveunit'
+    UPDATE_SETTING = 'updateSettings'
+    USER_DETAILS = 'user/details2'
+    W5 = 'w5/deviceData'
 
 class FeederSetting(StrEnum):
 
@@ -71,9 +71,9 @@ class Header(StrEnum):
     X_TIMEZONE = '-5.0'
     ACCEPT_LANG = 'en-US;q=1, it-US;q=0.9'
     ENCODING = 'gzip, deflate'
-    API_VERSION = '8.28.0'
+    API_VERSION = '11.2.1'
     CONTENT_TYPE = 'application/x-www-form-urlencoded'
-    AGENT = 'PETKIT/8.28.0 (iPhone; iOS 15.1; Scale/3.00)'
+    AGENT = 'PETKIT/11.2.1 (iPhone; iOS 15.1; Scale/3.00)'
     TZ = 'America/New_York'
     CLIENT = 'ios(15.1;iPhone14,3)'
     LOCALE = 'en_US'
@@ -195,8 +195,8 @@ CLIENT_DICT = {
     "platform":"ios",
     "osVersion":"15.1",
     "timezone":"-5.0",
-    "timezoneId":"America\/New_York",
-    "version":"8.28.0",
+    "timezoneId":"America/New_York",
+    "version":"11.2.1",
     "token":"",
     "name":"iPhone14,3"
 }
