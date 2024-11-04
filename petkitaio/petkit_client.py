@@ -197,7 +197,7 @@ class PetKitClient:
         """Fetch device roster endpoint to get all available devices."""
 
         await self.check_token()
-        url = f'{self.base_url}discovery/device_roster'
+        url = f'{self.base_url}{Endpoint.DEVICE_ROSTER}'
         header = await self.create_header()
         data = {
             'day': str(datetime.now().date()).replace('-', ''),
