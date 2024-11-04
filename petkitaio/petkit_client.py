@@ -82,6 +82,7 @@ class PetKitClient:
         self.token: str | None = None
         self.token_expiration: datetime | None = None
         self.user_id: str | None = None
+        self.group_id: str | None = None
         self.has_relay: bool = False
         self.ble_sequence: int = 0
         self.manually_paused: dict[int, bool] = {}
@@ -149,6 +150,15 @@ class PetKitClient:
         self.token = response['result']['session']['id']
         self.token_expiration = datetime.now() + timedelta(seconds=response['result']['session']['expiresIn'])
 
+        ### Get the GroupId
+        details_url = f'{self.base_url}{Endpoint.GROUP_FAMILY_LIST}'
+        details_data = {
+            'userId': self.user_id
+        }
+        header = await self.create_header()
+        family_list = await self._post(details_url, header, details_data)
+        self.group_id = family_list['result'][0]['groupId']
+
     async def check_token(self) -> None:
         """Check to see if there is a valid token or if token is about to expire.
         If there is no token, a new token is obtained. In addition,
@@ -187,11 +197,11 @@ class PetKitClient:
         """Fetch device roster endpoint to get all available devices."""
 
         await self.check_token()
-        url = f'{self.base_url}{Endpoint.DEVICE_ROSTER}'
+        url = f'{self.base_url}discovery/device_roster'
         header = await self.create_header()
         data = {
             'day': str(datetime.now().date()).replace('-', ''),
-            'groupId': self.user_id
+            'groupId': self.group_id
         }
         device_roster = await self._post(url, header, data)
         return device_roster
@@ -349,7 +359,7 @@ class PetKitClient:
         device_type_lower = device["type"].lower()
         feeder_url = f'{self.base_url}{device_type_lower}/{Endpoint.DEVICE_DETAIL}'
         data = {
-            'id': device['id']
+            'id': device['data']['id']
         }
         feeder_data = await self._post(feeder_url, header, data)
 
@@ -483,7 +493,6 @@ class PetKitClient:
 
     async def _post(self, url: str, headers: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:
         """Make POST API call."""
-
         async with self._session.post(url, headers=headers, data=data, timeout=self.timeout) as resp:
             return await self._response(resp)
 

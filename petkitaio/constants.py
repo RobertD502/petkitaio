@@ -28,6 +28,7 @@ class Endpoint(StrEnum):
     FRESH_ELEMENT_DESICCANT_RESET = 'feeder/desiccant_reset'
     FRESH_ELEMENT_MANUAL_FEED = 'feeder/save_dailyfeed'
     FRESH_ELEMENT_SETTING = 'feeder/update'
+    GROUP_FAMILY_LIST = 'group/family/list'
     LOGIN = 'user/login'
     MANUAL_FEED = 'saveDailyFeed'
     MAX_ODOR_RESET = 'deodorantReset'
