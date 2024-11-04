@@ -359,7 +359,7 @@ class PetKitClient:
         else:
             last_manual_feed_id = None
 
-        if device['type'] in ['D3', 'D4sh']:
+        if device['type'] in ['D3']:
             sound_list[-1] = 'Default'
             sound_url = f'{self.base_url}{device_type_lower}/{Endpoint.SOUND_LIST}'
             sound_data = {
