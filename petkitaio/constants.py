@@ -71,9 +71,9 @@ class Header(StrEnum):
     X_TIMEZONE = '-5.0'
     ACCEPT_LANG = 'en-US;q=1, it-US;q=0.9'
     ENCODING = 'gzip, deflate'
-    API_VERSION = '8.28.0'
+    API_VERSION = '10.1.0'
     CONTENT_TYPE = 'application/x-www-form-urlencoded'
-    AGENT = 'PETKIT/8.28.0 (iPhone; iOS 15.1; Scale/3.00)'
+    AGENT = 'PETKIT/10.1.0 (iPhone; iOS 15.1; Scale/3.00)'
     TZ = 'America/New_York'
     CLIENT = 'ios(15.1;iPhone14,3)'
     LOCALE = 'en_US'
@@ -195,8 +195,8 @@ CLIENT_DICT = {
     "platform":"ios",
     "osVersion":"15.1",
     "timezone":"-5.0",
-    "timezoneId":"America\/New_York",
-    "version":"8.28.0",
+    "timezoneId":"America/New_York",
+    "version":"10.1.0",
     "token":"",
     "name":"iPhone14,3"
 }
