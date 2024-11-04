@@ -22,6 +22,7 @@ class Endpoint(StrEnum):
     DEVICE_DETAIL = 'device_detail'
     DEVICE_RECORD = 'getDeviceRecord'
     DEVICE_ROSTER = 'discovery/device_roster_v2'
+    FAMILY_LIST = 'group/family/list'
     FEEDER_DESICCANT_RESET = 'desiccantReset'
     FRESH_ELEMENT_CALIBRATION = 'food_reset'
     FRESH_ELEMENT_CANCEL_FEED = 'cancel_realtime_feed'
