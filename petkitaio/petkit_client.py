@@ -82,12 +82,12 @@ class PetKitClient:
         self.token: str | None = None
         self.token_expiration: datetime | None = None
         self.user_id: str | None = None
-        self.has_relay: bool = False
         self.ble_sequence: int = 0
         self.manually_paused: dict[int, bool] = {}
         self.manual_pause_end: dict[int, datetime | None] = {}
         self.last_manual_feed_id: dict[int, str | None] = {}
         self.last_ble_poll: datetime | None = None
+        self.group_ids: set[int] = set()
 
     async def get_api_server_list(self) -> None:
         """Fetches a list of all api urls categorized by region."""
@@ -148,6 +148,20 @@ class PetKitClient:
         self.user_id = response['result']['session']['userId']
         self.token = response['result']['session']['id']
         self.token_expiration = datetime.now() + timedelta(seconds=response['result']['session']['expiresIn'])
+        ## Obtain all group IDs
+        await self.get_group_ids()
+
+    async def get_group_ids(self) -> None:
+        """Grab groups (families) the account is associated with
+        which will be used to grab device rosters.
+        """
+
+        families_url = f'{self.base_url}{Endpoint.FAMILY_LIST}'
+        header = await self.create_header()
+        data = {}
+        groups = await self._post(families_url, header, data)
+        for group in groups['result']:
+            self.group_ids.add(group['groupId'])
 
     async def check_token(self) -> None:
         """Check to see if there is a valid token or if token is about to expire.
@@ -183,57 +197,60 @@ class PetKitClient:
         }
         return header
 
-    async def get_device_roster(self) -> dict[str, Any]:
+    async def get_device_rosters(self) -> dict[int, Any]:
         """Fetch device roster endpoint to get all available devices."""
 
         await self.check_token()
         url = f'{self.base_url}{Endpoint.DEVICE_ROSTER}'
         header = await self.create_header()
-        data = {
-            'day': str(datetime.now().date()).replace('-', ''),
-            'groupId': self.user_id
-        }
-        device_roster = await self._post(url, header, data)
-        return device_roster
+        device_rosters = {}
+        for group_id in self.group_ids:
+            data = {
+                'day': str(datetime.now().date()).replace('-', ''),
+                'groupId': group_id
+            }
+            device_roster = await self._post(url, header, data)
+            device_rosters[group_id] = device_roster
+        return device_rosters
 
     async def get_petkit_data(self) -> PetKitData:
         """Fetch data for all PetKit devices."""
 
-        device_roster = await self.get_device_roster()
-        if 'hasRelay' in device_roster['result']:
-            self.has_relay = device_roster['result']['hasRelay']
-        else:
-            self.has_relay = False
-        header = await self.create_header()
-
+        device_rosters = await self.get_device_rosters()
         fountains_data: dict[int, W5Fountain] = {}
         feeders_data: dict[int, Feeder] = {}
         litter_boxes_data: dict[int, LitterBox] = {}
         purifiers_data: dict[int, Purifier] = {}
+        header = await self.create_header()
+        for group_id in device_rosters:
+            device_roster = device_rosters[group_id]
+            group_has_relay: bool = False
+            if 'hasRelay' in device_roster['result']:
+                group_has_relay = device_roster['result']['hasRelay']
 
-        devices = device_roster['result']['devices']
-        LOGGER.debug(f'Found the following PetKit devices: {devices}')
-        if devices:
-            for device in devices:
-                # W5 Water Fountain
-                if device['type'] in WATER_FOUNTAIN_LIST:
-                    wf_instance, wf_id = await self._handle_water_fountain(device=device, has_relay=self.has_relay, header=header)
-                    fountains_data[wf_id] = wf_instance
+            devices = device_roster['result']['devices']
+            LOGGER.debug(f'Found the following PetKit devices in family: {devices}')
+            if devices:
+                for device in devices:
+                    # W5 Water Fountain
+                    if device['type'] in WATER_FOUNTAIN_LIST:
+                        wf_instance, wf_id = await self._handle_water_fountain(device=device, has_relay=group_has_relay, header=header)
+                        fountains_data[wf_id] = wf_instance
 
-                # Feeders
-                if device['type'] in FEEDER_LIST:
-                    feeder_instance, feeder_id = await self._handle_feeder(device=device, header=header)
-                    feeders_data[feeder_id] = feeder_instance
+                    # Feeders
+                    if device['type'] in FEEDER_LIST:
+                        feeder_instance, feeder_id = await self._handle_feeder(device=device, header=header)
+                        feeders_data[feeder_id] = feeder_instance
 
-                # Litter Boxes
-                if device['type'] in LITTER_LIST:
-                    litter_box_instance, litter_box_id = await self._handle_litter_box(device=device, header=header)
-                    litter_boxes_data[litter_box_id] = litter_box_instance
+                    # Litter Boxes
+                    if device['type'] in LITTER_LIST:
+                        litter_box_instance, litter_box_id = await self._handle_litter_box(device=device, header=header)
+                        litter_boxes_data[litter_box_id] = litter_box_instance
 
-                # Purifiers
-                if device['type'] in PURIFIER_LIST:
-                    purifier_instance, purifier_id = await self._handle_purifier(device=device, header=header)
-                    purifiers_data[purifier_id] = purifier_instance
+                    # Purifiers
+                    if device['type'] in PURIFIER_LIST:
+                        purifier_instance, purifier_id = await self._handle_purifier(device=device, header=header)
+                        purifiers_data[purifier_id] = purifier_instance
 
         # Pets
         pets_data = await self._handle_pets(header=header)
@@ -271,7 +288,7 @@ class PetKitClient:
                 conn_url = f'{self.base_url}{Endpoint.BLE_CONNECT}'
                 poll_url = f'{self.base_url}{Endpoint.BLE_POLL}'
                 disconnect_url = f'{self.base_url}{Endpoint.BLE_CANCEL}'
-                relay_devices = await self._post(ble_url, header, data={'groupId': self.user_id,})
+                relay_devices = await self._post(ble_url, header, data={'groupId': device['groupId'],})
                 if relay_devices['result']:
                     ble_available = True
                     for relay_device in relay_devices['result']:
