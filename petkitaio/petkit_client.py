@@ -86,7 +86,7 @@ class PetKitClient:
         self.manually_paused: dict[int, bool] = {}
         self.manual_pause_end: dict[int, datetime | None] = {}
         self.last_manual_feed_id: dict[int, str | None] = {}
-        self.last_ble_poll: datetime | None = None
+        self.last_ble_poll: dict[int, datetime | None]  = {}
         self.group_ids: set[int] = set()
 
     async def get_api_server_list(self) -> None:
@@ -280,7 +280,15 @@ class PetKitClient:
             ### Only initiate BLE relay if 7 minutes have elapsed since the last time the relay was initiated.
             ### This helps prevent some devices, such as the Pura Max, from locking up (i.e., doesn't
             ### automatically cycle after cat usage) if they are asked to initiate the BLE relay too frequently.
-            if self.last_ble_poll is None or ((current_dt-self.last_ble_poll).total_seconds() >= 420):
+            can_poll = False
+            if not self.last_ble_poll:
+                can_poll = True
+            else:
+                if (current_dt-self.last_ble_poll[device['id']]).total_seconds() >= 420:
+                    can_poll = True
+                else:
+                    can_poll = False
+            if can_poll:
                 ble_connect_attempt: int = 1
                 ble_poll_attempt: int = 1
                 main_online: bool = False
@@ -324,7 +332,7 @@ class PetKitClient:
                                     pass
                                 finally:
                                     # Remember last time BLE relay was successfully initiated
-                                    self.last_ble_poll = datetime.now()
+                                    self.last_ble_poll[device['id']] = datetime.now()
                                     fountain_data = await self._post(wf_url, header, data)
                                     # Make sure to sever the BLE connection after getting updated data
                                     await asyncio.sleep(2)
