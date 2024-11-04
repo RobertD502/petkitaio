@@ -363,7 +363,8 @@ class PetKitClient:
             id=fountain_data['result']['id'],
             data=fountain_data['result'],
             type=device_type,
-            ble_relay=relay_tc
+            group_relay=has_relay,
+            ble_relay=relay_tc,
         )
         return wf_instance, fountain_data['result']['id']
 
@@ -749,8 +750,8 @@ class PetKitClient:
 
     async def control_water_fountain(self, water_fountain: W5Fountain, command: W5Command):
         """Set the mode on W5 Water Fountain."""
-        if water_fountain.ble_relay is None:
-            raise PetKitError(f'{water_fountain.data["name"]} does not have a valid BLE relay.')
+        if not water_fountain.group_relay:
+            raise PetKitError(f'{water_fountain.data["name"]} does not have a valid PetKit device to use as a BLE relay.')
         else:
             # Pause command sent depends on initial mode
             if command == W5Command.PAUSE:
