@@ -256,6 +256,7 @@ ASIA_REGIONS = [
 AUTH_ERROR_CODES = {
     122: 'PetKit username/email or password is incorrect',
     5: 'Login session expired. Your account can only be signed in on one device.',
+    125: 'Unregistered e-mail address. The region selected may not be the correct one associated with your account.'
 }
 
 BLUETOOTH_ERRORS = {
