@@ -143,7 +143,9 @@ class PetKitClient:
             'region': self.servers_dict[self.region]["id"],
             'username': self.username
         }
-
+        LOGGER.debug(
+            f'Logging in at {login_url} with region {self.region}'
+        )
         response = await self._post(login_url, headers, data)
         self.user_id = response['result']['session']['userId']
         self.token = response['result']['session']['id']
@@ -159,9 +161,11 @@ class PetKitClient:
         families_url = f'{self.base_url}{Endpoint.FAMILY_LIST}'
         header = await self.create_header()
         data = {}
+        LOGGER.debug(f'Grabbing group IDs at {families_url}')
         groups = await self._post(families_url, header, data)
         for group in groups['result']:
             self.group_ids.add(group['groupId'])
+        LOGGER.debug(f'Found the following group IDs: {self.group_ids}')
 
     async def check_token(self) -> None:
         """Check to see if there is a valid token or if token is about to expire.
@@ -174,6 +178,7 @@ class PetKitClient:
         if (self.token or self.token_expiration) is None:
             await self.login()
         elif (self.token_expiration-current_dt).total_seconds() < 3600:
+            LOGGER.debug('Token expired. Obtaining new token.')
             await self.login()
         else:
             return None
@@ -204,6 +209,7 @@ class PetKitClient:
         url = f'{self.base_url}{Endpoint.DEVICE_ROSTER}'
         header = await self.create_header()
         device_rosters = {}
+        LOGGER.debug(f'Fetching device rosters at {url}')
         for group_id in self.group_ids:
             data = {
                 'day': str(datetime.now().date()).replace('-', ''),
@@ -211,6 +217,10 @@ class PetKitClient:
             }
             device_roster = await self._post(url, header, data)
             device_rosters[group_id] = device_roster
+        LOGGER.debug(
+            f'Found the following device rosters:\n'
+            f'{json.dumps(device_rosters, indent=4)}'
+        )
         return device_rosters
 
     async def get_petkit_data(self) -> PetKitData:
@@ -222,14 +232,22 @@ class PetKitClient:
         litter_boxes_data: dict[int, LitterBox] = {}
         purifiers_data: dict[int, Purifier] = {}
         header = await self.create_header()
+
         for group_id in device_rosters:
             device_roster = device_rosters[group_id]
+            LOGGER.debug(
+                f'Parsing device roster for group ID {group_id}:\n'
+                f'{json.dumps(device_roster, indent = 4)}'
+            )
             group_has_relay: bool = False
             if 'hasRelay' in device_roster['result']:
                 group_has_relay = device_roster['result']['hasRelay']
 
             devices = device_roster['result']['devices']
-            LOGGER.debug(f'Found the following PetKit devices in family: {devices}')
+            LOGGER.debug(
+                f'Found the following PetKit devices in family:\n'
+                f'{json.dumps(devices, indent = 4)}'
+            )
             if devices:
                 for device in devices:
                     # W5 Water Fountain
@@ -254,7 +272,7 @@ class PetKitClient:
 
         # Pets
         pets_data = await self._handle_pets(header=header)
-
+        LOGGER.debug('PetKitData instance creation successful')
         return PetKitData(
             user_id=self.user_id,
             feeders=feeders_data,
@@ -280,15 +298,20 @@ class PetKitClient:
             ### Only initiate BLE relay if 7 minutes have elapsed since the last time the relay was initiated.
             ### This helps prevent some devices, such as the Pura Max, from locking up (i.e., doesn't
             ### automatically cycle after cat usage) if they are asked to initiate the BLE relay too frequently.
-            can_poll = False
+            can_poll: bool = False
             if device['id'] not in self.last_ble_poll:
                 can_poll = True
             else:
+                LOGGER.debug(
+                    f'Water fountain({device["id"]}) - Last successful BLE '
+                    f'relay polling: {self.last_ble_poll[device["id"]]}'
+                )
                 if (current_dt-self.last_ble_poll[device['id']]).total_seconds() >= 420:
                     can_poll = True
                 else:
                     can_poll = False
             if can_poll:
+                LOGGER.debug(f'Polling water fountain({device["id"]}) via BLE relay')
                 ble_connect_attempt: int = 1
                 ble_poll_attempt: int = 1
                 main_online: bool = False
@@ -296,29 +319,52 @@ class PetKitClient:
                 conn_url = f'{self.base_url}{Endpoint.BLE_CONNECT}'
                 poll_url = f'{self.base_url}{Endpoint.BLE_POLL}'
                 disconnect_url = f'{self.base_url}{Endpoint.BLE_CANCEL}'
+                LOGGER.debug('Fetching associated relay devices')
                 relay_devices = await self._post(ble_url, header, data={'groupId': device['groupId'],})
+                LOGGER.debug(
+                    f'Associated relay devices response:\n'
+                    f'{json.dumps(relay_devices, indent = 4)}'
+                )
                 if relay_devices['result']:
                     ble_available = True
                     for relay_device in relay_devices['result']:
                         if relay_device['pim'] == 1:
+                            LOGGER.debug('Main relay device online')
                             main_online = True
                             break
                         else:
+                            LOGGER.debug('Main relay device not online')
                             main_online = False
 
                     if ble_available and main_online:
+                        LOGGER.debug(f'Fetching water fountain({device["id"]}) details page at {wf_url}')
                         device_details = await self._post(wf_url, header, data)
+                        LOGGER.debug(
+                            f'Device details response:\n'
+                            f'{json.dumps(device_details, indent = 4)}'
+                        )
                         mac = device_details['result']['mac']
                         ble_data = {
                             'bleId': device_details['result']['id'],
                             'mac': mac,
                             'type': relay_tc
                         }
-
+                        LOGGER.debug(
+                            f'Starting BLE relay connection for {device_details["result"]["name"]}'
+                            f'({device_details["result"]["id"]})'
+                        )
                         conn_success = await self.start_ble_connection(conn_url, header, ble_data, ble_connect_attempt)
                         if conn_success:
+                            LOGGER.debug(
+                                f'BLE relay connection successful for {device_details["result"]["name"]}. '
+                                f'Attempting to poll the device now.'
+                            )
                             poll_success = await self.poll_ble_connection(poll_url, header, ble_data, ble_poll_attempt)
                             if poll_success:
+                                LOGGER.debug(
+                                    f'BLE relay polling successful for {device_details["result"]["name"]}. '
+                                    f'Sending initial BLE commands.'
+                                )
                                 # Wait a bit for BLE connection to be established before looking up most recent data
                                 await asyncio.sleep(2)
                                 # Need to reset ble_sequence if get_petkit_data is being called multiple times without a W5Commmand sent in between
@@ -333,9 +379,21 @@ class PetKitClient:
                                 finally:
                                     # Remember last time BLE relay was successfully initiated
                                     self.last_ble_poll[device['id']] = datetime.now()
+                                    LOGGER.debug(
+                                        f'Fetching data for {device_details["result"]["name"]} '
+                                        f'at {wf_url}'
+                                    )
                                     fountain_data = await self._post(wf_url, header, data)
+                                    LOGGER.debug(
+                                        f'Water fountain data response:\n'
+                                        f'{json.dumps(fountain_data, indent = 4)}'
+                                    )
                                     # Make sure to sever the BLE connection after getting updated data
                                     await asyncio.sleep(2)
+                                    LOGGER.debug(
+                                        f'Disconnecting from relay for water fountain '
+                                        f'{device_details["result"]["name"]}'
+                                    )
                                     await self._post(disconnect_url, header, ble_data)
                             else:
                                 LOGGER.warning(
@@ -343,22 +401,67 @@ class PetKitClient:
                                 )
                                 # Sever the BLE relay connection if polling attempts fail
                                 await asyncio.sleep(2)
+                                LOGGER.debug(
+                                    f'Disconnecting from relay for water fountain '
+                                    f'{device_details["result"]["name"]}'
+                                )
                                 await self._post(disconnect_url, header, ble_data)
                                 fountain_data = device_details
                         else:
                             LOGGER.warning(
-                                f'BLE connection to {device_details["result"]["name"]} failed after 4 attempts. Will try again during next refresh.')
+                                f'BLE connection to {device_details["result"]["name"]} failed after 4 attempts. Will try again during next refresh.'
+                            )
                             fountain_data = device_details
+
                     if not main_online:
                         LOGGER.warning(
-                            f'Unable to use BLE relay: Main relay device is reported as being offline. Fetching latest available data.')
+                            f'Unable to use BLE relay: Main relay device is reported as being offline. Fetching latest available data.'
+                        )
                         fountain_data = await self._post(wf_url, header, data)
+                        LOGGER.debug(
+                            f'Water fountain data response:\n'
+                            f'{json.dumps(fountain_data, indent=4)}'
+                        )
                 else:
+                    LOGGER.debug(
+                        'No associated relay devices found in response. Fetching latest data available from API.'
+                    )
                     fountain_data = await self._post(wf_url, header, data)
+                    LOGGER.debug(
+                        f'Water fountain data response:\n'
+                        f'{json.dumps(fountain_data, indent=4)}'
+                    )
             else:
+                LOGGER.debug(
+                    f'Too early to poll again via BLE relay.\n'
+                    f'Last Poll: {self.last_ble_poll[device["id"]]}\n'
+                    f'Next Poll: {self.last_ble_poll[device["id"]] + timedelta(seconds=420)}\n'
+                    f'Fetching latest data available from API.'
+                )
                 fountain_data = await self._post(wf_url, header, data)
+                LOGGER.debug(
+                    f'Water fountain data response:\n'
+                    f'{json.dumps(fountain_data, indent=4)}'
+                )
         else:
+            LOGGER.warning(
+                f'PetKit servers are reporting no PetKit device exists that can act as the BLE relay '
+                f'for the water fountain({device["id"]}).\n'
+                f'    If you DON\'T have a PetKit BLE relay device:\n'
+                f'     * You will not be able to control the water fountain and the most recent data will\n'
+                f'       reflect the last time the PetKit app was used to establish a direct bluetooth connection.\n'
+                f'    If you DO have a PetKit BLE relay device:\n'
+                f'     * PetKit may temporarily be reporting the BLE relay device as not being available.\n'
+                f'       Until the BLE relay device is reported to be available again, you will not be able\n'
+                f'       to control the water fountain and the most recent data will reflect the last time the\n'
+                f'       BLE relay or PetKit app (direct bluetooth connection) was used.'
+            )
+            LOGGER.debug('Fetching latest data available from API.')
             fountain_data = await self._post(wf_url, header, data)
+            LOGGER.debug(
+                f'Water fountain data response:\n'
+                f'{json.dumps(fountain_data, indent=4)}'
+            )
         wf_instance = W5Fountain(
             id=fountain_data['result']['id'],
             data=fountain_data['result'],
@@ -377,8 +480,14 @@ class PetKitClient:
         data = {
             'id': device['id']
         }
+        LOGGER.debug(
+            f'Fetching data for feeder({device["id"]}) at {feeder_url}'
+        )
         feeder_data = await self._post(feeder_url, header, data)
-
+        LOGGER.debug(
+            f' Feeder data response:\n'
+            f'{json.dumps(feeder_data, indent=4)}'
+        )
         # Populate the last manual feeding ID for the Gemini(d4s) feeder if it exists
         if feeder_data['result']['id'] in self.last_manual_feed_id:
             last_manual_feed_id = self.last_manual_feed_id[feeder_data['result']['id']]
@@ -391,7 +500,14 @@ class PetKitClient:
             sound_data = {
                 'deviceId': device['id']
             }
+            LOGGER.debug(
+                f'Fetching sound list for {feeder_data["result"]["name"]} at {feeder_url}'
+            )
             sound_response = await self._post(sound_url, header, sound_data)
+            LOGGER.debug(
+                f'Sound data response:\n'
+                f'{json.dumps(sound_response, indent=4)}'
+            )
             result = sound_response['result']
             for sound in result:
                 sound_list[sound['id']] = sound['name']
@@ -414,7 +530,14 @@ class PetKitClient:
         dd_data = {
             'id': device['id']
         }
+        LOGGER.debug(
+            f'Fetching litter box({device["id"]}) device details page at {dd_url}'
+        )
         device_detail = await self._post(dd_url, header, dd_data)
+        LOGGER.debug(
+            f'Litter box data response:\n'
+            f'{json.dumps(device_detail, indent=4)}'
+        )
 
         ### Fetch DeviceRecord page
         dr_url = f'{self.base_url}{device_type_lower}/{Endpoint.DEVICE_RECORD}'
@@ -426,7 +549,14 @@ class PetKitClient:
             date_key: str(datetime.now().date()).replace('-', ''),
             'deviceId': device['id']
         }
+        LOGGER.debug(
+            f'Fetching litter box({device["id"]}) device record page at {dr_url}'
+        )
         device_record = await self._post(dr_url, header, dr_data)
+        LOGGER.debug(
+            f'Litter box record response:\n'
+            f'{json.dumps(device_record, indent=4)}'
+        )
 
         ### Fetch statistic page
         stat_url = f'{self.base_url}{device_type_lower}/{Endpoint.STATISTIC}'
@@ -436,25 +566,46 @@ class PetKitClient:
             'startDate': str(datetime.now().date()).replace('-', ''),
             'type': 0
         }
+        LOGGER.debug(
+            f'Fetching litter box({device["id"]}) statistics page at {stat_url}'
+        )
         device_stats = await self._post(stat_url, header, stat_data)
+        LOGGER.debug(
+            f'Litter box statistics response:\n'
+            f'{json.dumps(device_stats, indent=4)}'
+        )
 
         if device_detail['result']['id'] in self.manually_paused:
             # Check to see if manual pause is currently True
             if self.manually_paused[device_detail['result']['id']]:
                 await self.check_manual_pause_expiration(device_detail['result']['id'])
                 manually_paused = self.manually_paused[device_detail['result']['id']]
+                LOGGER.debug(
+                    f'Litter box({device["id"]}) manual pause state: {manually_paused}'
+                )
             else:
                 manually_paused = False
+                LOGGER.debug(
+                    f'Litter box({device["id"]}) manual pause state: {manually_paused}'
+                )
         else:
             # Set to False on initial run
             manually_paused = False
+            LOGGER.debug(
+                f'Litter box({device["id"]}) manual pause state: {manually_paused}'
+            )
 
         if device_detail['result']['id'] in self.manual_pause_end:
             manual_pause_end = self.manual_pause_end[device_detail['result']['id']]
+            LOGGER.debug(
+                f'Litter box({device["id"]}) manual pause end: {manual_pause_end}'
+            )
         else:
             # Set to None on initial run
             manual_pause_end = None
-
+            LOGGER.debug(
+                f'Litter box({device["id"]}) manual pause end: {manual_pause_end}'
+            )
         ### Create LitterBox Object
         litter_box_instance = LitterBox(
             id=device_detail['result']['id'],
@@ -476,7 +627,14 @@ class PetKitClient:
         dd_data = {
             'id': device['id']
         }
+        LOGGER.debug(
+            f'Fetching purifier({device["id"]}) device details page at {dd_url}'
+        )
         device_detail = await self._post(dd_url, header, dd_data)
+        LOGGER.debug(
+            f'Purifier data response:\n'
+            f'{json.dumps(device_detail, indent=4)}'
+        )
 
         ### Create Purifier Object ###
         purifier_instance = Purifier(
@@ -495,6 +653,7 @@ class PetKitClient:
         details_data = {
             'userId': self.user_id
         }
+        LOGGER.debug(f'Fetching pets from user details page at {details_url}')
         user_details = await self._post(details_url, header, details_data)
         user_pets = user_details['result']['user']['dogs']
         if user_pets:
@@ -545,12 +704,20 @@ class PetKitClient:
 
         # Stop trying to connect via BLE relay after 4 attempts
         if ble_connect_attempt > 4:
+            LOGGER.debug(
+                f'BLE connection attempt count: {ble_connect_attempt}. Connection unsuccessful.'
+            )
             conn_success = False
             return conn_success
         else:
             conn_resp = await self._post(conn_url, header, ble_data)
+            LOGGER.debug(
+                f'BLE connection attempt {ble_connect_attempt} response:\n'
+                f'{json.dumps(conn_resp, indent=4)}'
+            )
             # State should be 1 if connection was successful 
             if conn_resp['result']['state'] != 1:
+                LOGGER.debug('BLE connection attempt failed.')
                 ble_connect_attempt += 1
                 await asyncio.sleep(3)
                 await self.start_ble_connection(conn_url, header, ble_data, ble_connect_attempt)
@@ -563,12 +730,20 @@ class PetKitClient:
 
         # Stop trying to poll via BLE relay after 4 attempts
         if ble_poll_attempt > 4:
+            LOGGER.debug(
+                f'BLE polling attempt count: {ble_poll_attempt}. Polling unsuccessful.'
+            )
             poll_success = False
             return poll_success
         else:
             poll_resp = await self._post(poll_url, header, ble_data)
+            LOGGER.debug(
+                f'BLE polling attempt {ble_poll_attempt} response:\n'
+                f'{json.dumps(poll_resp, indent=4)}'
+            )
             # Result should be 0 if polling was successful 
             if poll_resp['result'] != 0:
+                LOGGER.debug('BLE polling attempt failed.')
                 ble_poll_attempt += 1
                 await asyncio.sleep(3)
                 await self.poll_ble_connection(poll_url, header, ble_data, ble_poll_attempt)
