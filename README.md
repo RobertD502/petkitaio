@@ -23,6 +23,7 @@ This is PetKit's undocumented API. With that said, future changes made by PetKit
 `Water Fountains`
 - [W5 (Eversweet Solo 2)](https://www.amazon.com/PETKIT-EVERSWEET-Wireless-Visualization-Dispenser-2L/dp/B0B3RWF653)
 - [W5 (Eversweet 3 Pro)](https://www.amazon.com/PETKIT-Wireless-Fountain-Stainless-Dispenser/dp/B09QRH6L3M/)
+- [W5 (Eversweet 3 Pro UVC Version)](https://petkit.com/products/eversweet-3-pro-wireless-pump-uvc)
 - [W5 (Eversweet 5 Mini)](https://www.petkit.nl/products/eversweet-5-mini-binnen-2-weken-geleverd)
 
 
