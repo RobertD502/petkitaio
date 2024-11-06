@@ -281,7 +281,7 @@ class PetKitClient:
             ### This helps prevent some devices, such as the Pura Max, from locking up (i.e., doesn't
             ### automatically cycle after cat usage) if they are asked to initiate the BLE relay too frequently.
             can_poll = False
-            if not self.last_ble_poll:
+            if device['id'] not in self.last_ble_poll:
                 can_poll = True
             else:
                 if (current_dt-self.last_ble_poll[device['id']]).total_seconds() >= 420:
