@@ -47,22 +47,50 @@ class Endpoint(StrEnum):
 
 class FeederSetting(StrEnum):
 
+    AUTO_PRODUCT = 'autoProduct'
+    AUTO_UPGRADE = 'autoUpgrade'
+    CAMERA = 'camera'
+    CAMERA_CONFIG = 'cameraConfig'
     CHILD_LOCK = 'manualLock'
+    CLOUD_UPLOAD = 'upload'
+    CONTROL_SETTINGS = 'controlSettings'
+    DETECT_CONFIG = 'detectConfig'
+    DETECT_INTERVAL = 'detectInterval'
+    DETECT_MULTI_RANGE = 'detectMultiRange'
     DISPENSE_TONE = 'feedSound'
+    DISPENSING_NOTIFY = 'feedNotify'
     DO_NOT_DISTURB = 'disturbMode'
+    EAT_NOTIFY = 'eatNotify'
+    EAT_SENSITIVITY = 'eatSensitivity'
+    FEED_PICTURE = 'feedPicture'
     FEED_TONE = 'feedTone'
     FRESH_ELEMENT_CHILD_LOCK = 'settings.manualLock'
     FRESH_ELEMENT_INDICATOR_LIGHT = 'settings.lightMode'
+    HIGHLIGHT = 'highlight'
     INDICATOR_LIGHT = 'lightMode'
+    LIVE_ENCRYPT = 'liveEncrypt'
+    LOW_BATTERY_NOTIFY = 'lowBatteryNotify'
+    MICROPHONE = 'microphone'
     MIN_EAT_DURATION = 'shortest'
     MINI_CHILD_LOCK = 'settings.manualLock'
     MINI_INDICATOR_LIGHT = 'settings.lightMode'
+    MOVE_NOTIFY = 'moveNotify'
+    MOVE_SENSITIVITY = 'moveSensitivity'
+    NIGHT_VISION = 'night'
+    PET_EAT_NOTIFY = 'eatNotify'
+    PET_SENSITIVITY = 'petSensitivity'
+    PET_VISIT_NOTIFY = 'petNotify'
+    PRE_LIVE = 'preLive'
+    REFILL_FOOD_NOTIFY = 'foodNotify'
     SELECTED_SOUND = 'selectedSound'
     SHORTAGE_ALARM = 'foodWarn'
+    SMART_FRAME = 'smartFrame'
     SOUND_ENABLE = 'soundEnable'
     SURPLUS = 'surplus'
     SURPLUS_CONTROL = 'surplusControl'
+    SURPLUS_STANDARD = 'surplusStandard'
     SYSTEM_SOUND = 'systemSoundEnable'
+    TIME_DISPLAY = 'timeDisplay'
     VOLUME = 'volume'
 
 
@@ -269,7 +297,7 @@ SERVER_ERROR_CODES = {
 }
 
 BLE_HEADER = [-6, -4, -3]
-FEEDER_LIST = ['D3', 'D4', 'D4s', 'Feeder', 'FeederMini']
+FEEDER_LIST = ['D3', 'D4', 'D4s', 'D4sh', 'Feeder', 'FeederMini']
 LITTER_LIST = ['T3', 'T4']
 PURIFIER_LIST = ['K2']
 WATER_FOUNTAIN_LIST = ['W5']
