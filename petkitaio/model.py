@@ -12,7 +12,7 @@ class PetKitData:
     user_id: str
     feeders: Optional[dict[int, Any]] = None
     litter_boxes: Optional[dict[int, Any]] = None
-    water_fountains: Optional[dict[int, W5Fountain]] = None
+    water_fountains: Optional[dict[int, Fountain]] = None
     pets: Optional[dict[int, Pet]] = None
     purifiers: Optional[dict[int, Purifier]] = None
 
@@ -51,8 +51,8 @@ class Purifier:
 
 
 @dataclass
-class W5Fountain:
-    """Dataclass for W5 Water Fountain."""
+class Fountain:
+    """Dataclass for Water Fountain."""
 
     id: int
     data: dict[str, Any]

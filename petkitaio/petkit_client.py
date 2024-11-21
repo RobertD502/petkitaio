@@ -41,15 +41,15 @@ from petkitaio.constants import (
     SERVER_ERROR_CODES,
     TIMEOUT,
     WATER_FOUNTAIN_LIST,
-    W5Command,
-    W5_COMMAND_TO_CODE,
-    W5_DND_COMMANDS,
-    W5_LIGHT_BRIGHTNESS,
-    W5_LIGHT_POWER,
-    W5_SETTINGS_COMMANDS,
+    FountainCommand,
+    FOUNTAIN_COMMAND_TO_CODE,
+    FOUNTAIN_DND_COMMANDS,
+    FOUNTAIN_LIGHT_BRIGHTNESS,
+    FOUNTAIN_LIGHT_POWER,
+    FOUNTAIN_SETTINGS_COMMANDS,
 )
 from petkitaio.exceptions import (AuthError, BluetoothError, PetKitError, RegionError, ServerError, TimezoneError)
-from petkitaio.model import (Feeder, LitterBox, Pet, PetKitData, Purifier, W5Fountain)
+from petkitaio.model import (Feeder, LitterBox, Pet, PetKitData, Purifier, Fountain)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -227,7 +227,7 @@ class PetKitClient:
         """Fetch data for all PetKit devices."""
 
         device_rosters = await self.get_device_rosters()
-        fountains_data: dict[int, W5Fountain] = {}
+        fountains_data: dict[int, Fountain] = {}
         feeders_data: dict[int, Feeder] = {}
         litter_boxes_data: dict[int, LitterBox] = {}
         purifiers_data: dict[int, Purifier] = {}
@@ -282,7 +282,7 @@ class PetKitClient:
             purifiers=purifiers_data
         )
 
-    async def _handle_water_fountain(self, device: dict[str, Any], has_relay: bool, header: dict[str, str]) -> (W5Fountain, int):
+    async def _handle_water_fountain(self, device: dict[str, Any], has_relay: bool, header: dict[str, str]) -> (Fountain, int):
         """Handle parsing water fountain and initiating BLE relay connection."""
 
         device_type: str = device['type'].lower()
@@ -467,7 +467,7 @@ class PetKitClient:
                 f'Water fountain data response:\n'
                 f'{json.dumps(fountain_data, indent=4)}'
             )
-        wf_instance = W5Fountain(
+        wf_instance = Fountain(
             id=fountain_data['result']['id'],
             data=fountain_data['result'],
             type=device_type,
@@ -761,7 +761,7 @@ class PetKitClient:
         """We have to make two calls to get updated date from the water fountain."""
         command_url = f'{self.base_url}{Endpoint.CONTROL_WF}'
         header = await self.create_header()
-        data1 = await self.create_ble_data(W5Command.FIRST_BLE_CMND)
+        data1 = await self.create_ble_data(FountainCommand.FIRST_BLE_CMND)
         first_command = {
             'bleId': device['result']['id'],
             'cmd': '215',
@@ -772,7 +772,7 @@ class PetKitClient:
         await self._post(command_url, header, first_command)
         self.ble_sequence += 1
 
-        data2 = await self.create_ble_data(W5Command.SECOND_BLE_CMND)
+        data2 = await self.create_ble_data(FountainCommand.SECOND_BLE_CMND)
         second_command = {
             'bleId': device['result']['id'],
             'cmd': '216',
@@ -784,53 +784,53 @@ class PetKitClient:
         self.ble_sequence += 1
 
 
-    async def create_ble_data(self, command: W5Command, device: W5Fountain | None = None) -> str:
+    async def create_ble_data(self, command: FountainCommand, device: Fountain | None = None) -> str:
         """Create URL encoded data from specific byte array."""
 
         byte_list: list = []
-        if command == W5Command.FIRST_BLE_CMND:
+        if command == FountainCommand.FIRST_BLE_CMND:
             byte_list = [-6, -4, -3, -41, 1, self.ble_sequence, 0, 0, -5]
-        if command == W5Command.SECOND_BLE_CMND:
+        if command == FountainCommand.SECOND_BLE_CMND:
             byte_list = [-6, -4, -3, -40, 1, self.ble_sequence, 0, 0, -5]
-        if command == W5Command.NORMAL_TO_PAUSE:
+        if command == FountainCommand.NORMAL_TO_PAUSE:
             byte_list = [-6, -4, -3, -36, 1, self.ble_sequence, 2, 0, 0, 1, -5]
-        if command == W5Command.SMART_TO_PAUSE:
+        if command == FountainCommand.SMART_TO_PAUSE:
             byte_list = [-6, -4, -3, -36, 1, self.ble_sequence, 2, 0, 0, 2, -5]
-        if command == W5Command.NORMAL:
+        if command == FountainCommand.NORMAL:
             byte_list = [-6, -4, -3, -36, 1, self.ble_sequence, 2, 0, 1, 1, -5]
-        if command == W5Command.SMART:
+        if command == FountainCommand.SMART:
             byte_list = [-6, -4, -3, -36, 1, self.ble_sequence, 2, 0, 1, 2, -5]
 
-        if command == W5Command.LIGHT_OFF:
+        if command == FountainCommand.LIGHT_OFF:
             # byte_list example = [-6, -4, -3, -35, 1, self.ble_sequence, 13, 0, 3, 3, 0, light_brightness, 0, 0, 0, 0, 0, 5, 40, 1, 104, -5]
-            data_list = await self.w5_command_data_creator(device=device, command=command, setting=[0])
+            data_list = await self.fountain_command_data_creator(device=device, command=command, setting=[0])
             byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
 
-        if command == W5Command.LIGHT_ON:
-            data_list = await self.w5_command_data_creator(device=device, command=command, setting=[1])
+        if command == FountainCommand.LIGHT_ON:
+            data_list = await self.fountain_command_data_creator(device=device, command=command, setting=[1])
             byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
 
-        if command == W5Command.LIGHT_LOW:
-            data_list = await self.w5_command_data_creator(device=device, command=command, setting=[1])
+        if command == FountainCommand.LIGHT_LOW:
+            data_list = await self.fountain_command_data_creator(device=device, command=command, setting=[1])
             byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
 
-        if command == W5Command.LIGHT_MEDIUM:
-            data_list = await self.w5_command_data_creator(device=device, command=command, setting=[2])
+        if command == FountainCommand.LIGHT_MEDIUM:
+            data_list = await self.fountain_command_data_creator(device=device, command=command, setting=[2])
             byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
 
-        if command == W5Command.LIGHT_HIGH:
-            data_list = await self.w5_command_data_creator(device=device, command=command, setting=[3])
+        if command == FountainCommand.LIGHT_HIGH:
+            data_list = await self.fountain_command_data_creator(device=device, command=command, setting=[3])
             byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
 
-        if command == W5Command.DO_NOT_DISTURB:
-            data_list = await self.w5_command_data_creator(device=device, command=command, setting=[1])
+        if command == FountainCommand.DO_NOT_DISTURB:
+            data_list = await self.fountain_command_data_creator(device=device, command=command, setting=[1])
             byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
 
-        if command == W5Command.DO_NOT_DISTURB_OFF:
-            data_list = await self.w5_command_data_creator(device=device, command=command, setting=[0])
+        if command == FountainCommand.DO_NOT_DISTURB_OFF:
+            data_list = await self.fountain_command_data_creator(device=device, command=command, setting=[0])
             byte_list = await self.create_ble_byte_list(command=-35, data_list=data_list)
 
-        if command == W5Command.RESET_FILTER:
+        if command == FountainCommand.RESET_FILTER:
             byte_list = [-6, -4, -3, -34, 1, self.ble_sequence, 0, 0, -5]
 
         byte_array = bytearray([x % 256 for x in byte_list])
@@ -838,18 +838,18 @@ class PetKitClient:
         url_encoded = urlencode.quote(b64_encoded, 'utf-8')
         return url_encoded
 
-    async def w5_command_data_creator(self, device: W5Fountain, command: W5Command, setting: list) -> list:
-        """Create W5 settings byte array as list."""
+    async def fountain_command_data_creator(self, device: Fountain, command: FountainCommand, setting: list) -> list:
+        """Create fountain settings byte array as list."""
 
         data: list = []
         device_data = device.data
-        if command in W5_SETTINGS_COMMANDS:
+        if command in FOUNTAIN_SETTINGS_COMMANDS:
             light_up = await self.short_to_byte_list(input=device_data['settings']['lampRingLightUpTime'])
             light_out = await self.short_to_byte_list(input=device_data['settings']['lampRingGoOutTime'])
             disturb_start = await self.short_to_byte_list(input=device_data['settings']['noDisturbingStartTime'])
             disturb_end = await self.short_to_byte_list(input=device_data['settings']['noDisturbingEndTime'])
 
-            if command in W5_LIGHT_POWER:
+            if command in FOUNTAIN_LIGHT_POWER:
                 data = list(chain(
                                 [device_data['settings']['smartWorkingTime']],
                                 [device_data['settings']['smartSleepTime']],
@@ -862,7 +862,7 @@ class PetKitClient:
                                 disturb_end,
                             )
                         )
-            if command in W5_LIGHT_BRIGHTNESS:
+            if command in FOUNTAIN_LIGHT_BRIGHTNESS:
                 data = list(chain(
                                 [device_data['settings']['smartWorkingTime']],
                                 [device_data['settings']['smartSleepTime']],
@@ -875,7 +875,7 @@ class PetKitClient:
                                 disturb_end,
                             )
                         )
-            if command in W5_DND_COMMANDS:
+            if command in FOUNTAIN_DND_COMMANDS:
                 data = list(chain(
                                 [device_data['settings']['smartWorkingTime']],
                                 [device_data['settings']['smartSleepTime']],
@@ -928,23 +928,23 @@ class PetKitClient:
         response = await self._post(url, header, data)
         return response
 
-    async def control_water_fountain(self, water_fountain: W5Fountain, command: W5Command):
+    async def control_water_fountain(self, water_fountain: Fountain, command: FountainCommand):
         """Set the mode on W5 Water Fountain."""
         if not water_fountain.group_relay:
             raise PetKitError(f'{water_fountain.data["name"]} does not have a valid PetKit device to use as a BLE relay.')
         else:
             # Pause command sent depends on initial mode
-            if command == W5Command.PAUSE:
+            if command == FountainCommand.PAUSE:
                 if water_fountain.data['powerStatus'] == 0:
                     raise PetKitError(f'{water_fountain.data["name"]} is already paused.')
                 else:
                     if water_fountain.data['mode'] == 1:
-                        ble_data = await self.create_ble_data(W5Command.NORMAL_TO_PAUSE, water_fountain)
+                        ble_data = await self.create_ble_data(FountainCommand.NORMAL_TO_PAUSE, water_fountain)
                     else:
-                        ble_data = await self.create_ble_data(W5Command.SMART_TO_PAUSE, water_fountain)
+                        ble_data = await self.create_ble_data(FountainCommand.SMART_TO_PAUSE, water_fountain)
 
             # make sure light is on if brightness is being set
-            elif command in W5_LIGHT_BRIGHTNESS:
+            elif command in FOUNTAIN_LIGHT_BRIGHTNESS:
                 if water_fountain.data['settings']['lampRingSwitch'] != 1:
                     raise PetKitError(f'{water_fountain.data["name"]} indicator light is Off. You can only change light brightness when the indicator light is On.')
                 else:
@@ -962,7 +962,7 @@ class PetKitClient:
             poll_url = f'{self.base_url}{Endpoint.BLE_POLL}'
             command_url = f'{self.base_url}{Endpoint.CONTROL_WF}'
             disconnect_url = f'{self.base_url}{Endpoint.BLE_CANCEL}'
-            cmnd_code = W5_COMMAND_TO_CODE[command]
+            cmnd_code = FOUNTAIN_COMMAND_TO_CODE[command]
 
             command_data = {
                 'bleId': water_fountain.data['id'],

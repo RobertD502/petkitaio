@@ -355,12 +355,14 @@ await client.reset_feeder_desiccant(feeder=devices.feeders[feederid])
 ```
 
 ### Control Water Fountain via BLE Relay
+
 ```python
 # A valid relay (set up through the PetKit app) is required in order to send commands to the Eversweet 3 Pro
 # See constants.py W5Command class for available commands
 # Additional import needed:
-from petkitaio.constants import W5Command
+from petkitaio.constants import FountainCommand
 
 # Set Water Fountain to Smart Mode. Reusing retrieved devices from above.
-await client.control_water_fountain(water_fountain=devices.water_fountains[water_fountain_id], command=W5Command.SMART)
+await client.control_water_fountain(water_fountain=devices.water_fountains[water_fountain_id],
+                                    command=FountainCommand.SMART)
 ```

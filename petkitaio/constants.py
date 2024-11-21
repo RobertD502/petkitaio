@@ -198,7 +198,7 @@ class PurifierCommandType(StrEnum):
     POWER = 'power'
     MODE = 'mode'
 
-class W5Command(StrEnum):
+class FountainCommand(StrEnum):
 
     PAUSE = 'Pause'
     NORMAL_TO_PAUSE = 'Normal To Pause'
@@ -379,32 +379,32 @@ PUR_CMD_TO_VALUE = {
     PurifierCommand.STRONG_MODE: 3
 }
 
-W5_COMMAND_TO_CODE = {
-    W5Command.DO_NOT_DISTURB: '221',
-    W5Command.DO_NOT_DISTURB_OFF: '221',
-    W5Command.LIGHT_ON: '221',
-    W5Command.LIGHT_OFF: '221',
-    W5Command.LIGHT_LOW: '221',
-    W5Command.LIGHT_MEDIUM: '221',
-    W5Command.LIGHT_HIGH: '221',
-    W5Command.PAUSE: '220',
-    W5Command.RESET_FILTER: '222',
-    W5Command.NORMAL: '220',
-    W5Command.NORMAL_TO_PAUSE: '220',
-    W5Command.SMART: '220',
-    W5Command.SMART_TO_PAUSE: '220',
+FOUNTAIN_COMMAND_TO_CODE = {
+    FountainCommand.DO_NOT_DISTURB: '221',
+    FountainCommand.DO_NOT_DISTURB_OFF: '221',
+    FountainCommand.LIGHT_ON: '221',
+    FountainCommand.LIGHT_OFF: '221',
+    FountainCommand.LIGHT_LOW: '221',
+    FountainCommand.LIGHT_MEDIUM: '221',
+    FountainCommand.LIGHT_HIGH: '221',
+    FountainCommand.PAUSE: '220',
+    FountainCommand.RESET_FILTER: '222',
+    FountainCommand.NORMAL: '220',
+    FountainCommand.NORMAL_TO_PAUSE: '220',
+    FountainCommand.SMART: '220',
+    FountainCommand.SMART_TO_PAUSE: '220',
 }
 
-W5_DND_COMMANDS = [W5Command.DO_NOT_DISTURB, W5Command.DO_NOT_DISTURB_OFF]
-W5_LIGHT_BRIGHTNESS = [W5Command.LIGHT_LOW, W5Command.LIGHT_MEDIUM, W5Command.LIGHT_HIGH]
-W5_LIGHT_POWER = [W5Command.LIGHT_ON, W5Command.LIGHT_OFF]
-W5_MODE = [W5Command.NORMAL, W5Command.SMART, W5Command.NORMAL_TO_PAUSE, W5Command.SMART_TO_PAUSE]
-W5_SETTINGS_COMMANDS = [
-    W5Command.DO_NOT_DISTURB,
-    W5Command.DO_NOT_DISTURB_OFF,
-    W5Command.LIGHT_LOW,
-    W5Command.LIGHT_MEDIUM,
-    W5Command.LIGHT_HIGH,
-    W5Command.LIGHT_ON,
-    W5Command.LIGHT_OFF,
+FOUNTAIN_DND_COMMANDS = [FountainCommand.DO_NOT_DISTURB, FountainCommand.DO_NOT_DISTURB_OFF]
+FOUNTAIN_LIGHT_BRIGHTNESS = [FountainCommand.LIGHT_LOW, FountainCommand.LIGHT_MEDIUM, FountainCommand.LIGHT_HIGH]
+FOUNTAIN_LIGHT_POWER = [FountainCommand.LIGHT_ON, FountainCommand.LIGHT_OFF]
+FOUNTAIN_MODE = [FountainCommand.NORMAL, FountainCommand.SMART, FountainCommand.NORMAL_TO_PAUSE, FountainCommand.SMART_TO_PAUSE]
+FOUNTAIN_SETTINGS_COMMANDS = [
+    FountainCommand.DO_NOT_DISTURB,
+    FountainCommand.DO_NOT_DISTURB_OFF,
+    FountainCommand.LIGHT_LOW,
+    FountainCommand.LIGHT_MEDIUM,
+    FountainCommand.LIGHT_HIGH,
+    FountainCommand.LIGHT_ON,
+    FountainCommand.LIGHT_OFF,
 ]
