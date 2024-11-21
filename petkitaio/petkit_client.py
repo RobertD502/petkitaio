@@ -288,7 +288,12 @@ class PetKitClient:
         device_type: str = device['type'].lower()
         fountain_data: dict[str, Any] = {}
         relay_tc: int = 14
-        wf_url = f'{self.base_url}{Endpoint.W5}'
+
+        if device_type == 'w5':
+            wf_url = f'{self.base_url}{Endpoint.W5}'
+        elif device_type == 'ctw3':
+            wf_url = f'{self.base_url}{Endpoint.CTW3}'
+
         data = {
             'id': device['id']
         }

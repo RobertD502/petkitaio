@@ -44,6 +44,7 @@ class Endpoint(StrEnum):
     UPDATE_SETTING = 'updateSettings'
     USER_DETAILS = 'user/details2'
     W5 = 'w5/deviceData'
+    CTW3 = 'ctw3/deviceData'
 
 class FeederSetting(StrEnum):
 
@@ -300,7 +301,7 @@ BLE_HEADER = [-6, -4, -3]
 FEEDER_LIST = ['D3', 'D4', 'D4s', 'D4sh', 'Feeder', 'FeederMini']
 LITTER_LIST = ['T3', 'T4']
 PURIFIER_LIST = ['K2']
-WATER_FOUNTAIN_LIST = ['W5']
+WATER_FOUNTAIN_LIST = ['W5', "Ctw3"]
 
 LB_CMD_TO_KEY = {
     LitterBoxCommand.LIGHT_ON: LitterBoxCommandKey.START,
