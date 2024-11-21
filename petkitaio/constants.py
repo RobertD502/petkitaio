@@ -191,7 +191,6 @@ class PurifierCommand(StrEnum):
 class PurifierCommandKey(StrEnum):
 
     POWER = 'power_action'
-    MODE = 'mode_action'
 
 class PurifierCommandType(StrEnum):
 
