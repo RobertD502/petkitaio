@@ -15,7 +15,7 @@ This is PetKit's undocumented API. With that said, future changes made by PetKit
 
 `Litter Boxes`
 - [T3 (Pura X)](https://www.amazon.com/PETKIT-Self-Cleaning-Scooping-Automatic-Multiple/dp/B08T9CCP1M)
-- [T4 (Pura MAX) with/without Pura Air](https://www.amazon.com/PETKIT-Self-Cleaning-Capacity-Multiple-Automatic/dp/B09KC7Q4YF)
+- [T4 (Pura MAX / Pura MAX 2) with/without Pura Air](https://www.amazon.com/PETKIT-Self-Cleaning-Capacity-Multiple-Automatic/dp/B09KC7Q4YF)
 
 `Purifiers`
 - [K2 (Air Magicube)](https://www.instachew.com/product-page/petkit-air-magicube-smart-odor-eliminator)
@@ -29,7 +29,10 @@ This is PetKit's undocumented API. With that said, future changes made by PetKit
 
 ## Important
 
-PetKit accounts can only be logged in on one device at a time. Using this library will result in getting signed out of the mobile app. If you want to continue using the mobile app, use the family share feature to share devices to a secondary account. `Note`: The secondary account needs to be used with the mobile app while the primary account is used with this library as this library will not fetch devices that are part of family sharing. 
+PetKit accounts can only be logged in on one device at a time. Using this library will result in getting signed out of the mobile app. If you want to continue using the mobile app, use the family share feature to share devices to a secondary account.
+
+> [!NOTE]
+> The secondary account may be used with this library. However, be aware that this library was created with a primary account - using a secondary account with this library will work, but I can't guarantee that all features will work. 
 
 
 This package depends on [aiohttp](https://docs.aiohttp.org/en/stable/) and [tzlocal](https://pypi.org/project/tzlocal/). `Python 3.7` or greater is required.
@@ -307,9 +310,9 @@ async def main():
         client = PetKitClient('email', 'password', session, 'United States')
 
 
-        ###################################################################################
+        ####################################################################################
         Examples within the examples section utilize the PetKitClient instance created above
-        ###################################################################################
+        ####################################################################################
 
 
 
