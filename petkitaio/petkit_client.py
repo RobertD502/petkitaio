@@ -58,13 +58,21 @@ class PetKitClient:
     """PetKit client."""
 
     def __init__(
-        self, username: str, password: str, session: ClientSession | None = None, region: str = None, timezone: str = None, timeout: int = TIMEOUT
+        self,
+        username: str,
+        password: str,
+        session: ClientSession | None = None,
+        region: str = None,
+        timezone: str = None,
+        timeout: int = TIMEOUT
     ) -> None:
         """Initialize PetKit Client.
 
         username: PetKit username/email
         password: PetKit account password
         session: aiohttp.ClientSession or None to create a new session
+        region: See available regions in Documentation
+        timezone: automatically obtained from system if not specified
         """
 
         # Catch if a user failed to define a region
@@ -82,12 +90,14 @@ class PetKitClient:
         self.token: str | None = None
         self.token_expiration: datetime | None = None
         self.user_id: str | None = None
+        self.use_ble_relay: bool = True
         self.ble_sequence: int = 0
         self.manually_paused: dict[int, bool] = {}
         self.manual_pause_end: dict[int, datetime | None] = {}
         self.last_manual_feed_id: dict[int, str | None] = {}
         self.last_ble_poll: dict[int, datetime | None]  = {}
         self.group_ids: set[int] = set()
+        self.missing_relay_log_count: dict[int, int] = {}
 
     async def get_api_server_list(self) -> None:
         """Fetches a list of all api urls categorized by region."""
@@ -292,8 +302,13 @@ class PetKitClient:
         data = {
             'id': device['id']
         }
+        # Set missing relay log count to 0 during first run
+        if device['id'] not in self.missing_relay_log_count:
+            self.missing_relay_log_count[device['id']] = 0
 
-        if has_relay:
+        if has_relay and self.use_ble_relay:
+            # Reset log count to 0 in case relay becomes available
+            self.missing_relay_log_count[device['id']] = 0
             current_dt = datetime.now()
             ### Only initiate BLE relay if 7 minutes have elapsed since the last time the relay was initiated.
             ### This helps prevent some devices, such as the Pura Max, from locking up (i.e., doesn't
@@ -444,18 +459,22 @@ class PetKitClient:
                     f'{json.dumps(fountain_data, indent=4)}'
                 )
         else:
-            LOGGER.warning(
-                f'PetKit servers are reporting no PetKit device exists that can act as the BLE relay '
-                f'for the water fountain({device["id"]}).\n'
-                f'    If you DON\'T have a PetKit BLE relay device:\n'
-                f'     * You will not be able to control the water fountain and the most recent data will\n'
-                f'       reflect the last time the PetKit app was used to establish a direct bluetooth connection.\n'
-                f'    If you DO have a PetKit BLE relay device:\n'
-                f'     * PetKit may temporarily be reporting the BLE relay device as not being available.\n'
-                f'       Until the BLE relay device is reported to be available again, you will not be able\n'
-                f'       to control the water fountain and the most recent data will reflect the last time the\n'
-                f'       BLE relay or PetKit app (direct bluetooth connection) was used.'
-            )
+            if self.use_ble_relay and self.missing_relay_log_count[device['id']] == 0:
+                LOGGER.warning(
+                    f'PetKit servers are reporting no PetKit device exists that can act as the BLE relay '
+                    f'for the water fountain({device["id"]}).\n'
+                    f'    If you DON\'T have a PetKit BLE relay device:\n'
+                    f'     * You will not be able to control the water fountain and the most recent data will\n'
+                    f'       reflect the last time the PetKit app was used to establish a direct bluetooth connection.\n'
+                    f'    If you DO have a PetKit BLE relay device:\n'
+                    f'     * PetKit may temporarily be reporting the BLE relay device as not being available.\n'
+                    f'       Until the BLE relay device is reported to be available again, you will not be able\n'
+                    f'       to control the water fountain and the most recent data will reflect the last time the\n'
+                    f'       BLE relay or PetKit app (direct bluetooth connection) was used.'
+                )
+                # Set the log count so that the message is only logged once if the relay is missing
+                # and only once after a relay device becomes unavailable.
+                self.missing_relay_log_count[device['id']] = 1
             LOGGER.debug('Fetching latest data available from API.')
             fountain_data = await self._post(wf_url, header, data)
             LOGGER.debug(
@@ -655,6 +674,10 @@ class PetKitClient:
         }
         LOGGER.debug(f'Fetching pets from user details page at {details_url}')
         user_details = await self._post(details_url, header, details_data)
+        LOGGER.debug(
+            f'User details/pets page response:\n'
+            f'{json.dumps(user_details, indent=4)}'
+        )
         user_pets = user_details['result']['user']['dogs']
         if user_pets:
             for pet in user_pets:
